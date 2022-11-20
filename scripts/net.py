@@ -26,12 +26,14 @@ import tempfile
 import shutil
 import os
 import glob
+import random
 
 #print_config()
 
 class Net(pytorch_lightning.LightningModule):
-    def __init__(self):
+    def __init__(self, data_dir):
         super().__init__()
+        self.data_dir = data_dir
         self._model = UNet(
             spatial_dims=3,
             in_channels=1,
@@ -39,7 +41,7 @@ class Net(pytorch_lightning.LightningModule):
             channels=(16, 32, 64, 128, 256),
             strides=(2, 2, 2, 2),
             num_res_units=2,
-            norm=Norm.BATCH,
+            norm=Norm.BATCH
         )
         self.loss_function = DiceLoss(to_onehot_y=True, softmax=True)
         self.post_pred = Compose([EnsureType("tensor", device="cpu"), AsDiscrete(argmax=True, to_onehot=2)])
@@ -52,22 +54,28 @@ class Net(pytorch_lightning.LightningModule):
         return self._model(x)
 
     def prepare_data(self):
+
+        # set deterministic training for reproducibility
+        set_determinism(seed=42)        # HHG2G reference lol
+        random.seed(42)
+
         # set up the correct data path
         # TODO: change this bit to the proper way to split the data
         # probably just move the data to train and val directories
         # and then get the train and val images from their respective directories
-        train_images = sorted(
-            glob.glob(os.path.join(data_dir, "imagesTr", "*.nii.gz")))
-        train_labels = sorted(
-            glob.glob(os.path.join(data_dir, "labelsTr", "*.nii.gz")))
+        images = sorted(
+            glob.glob(os.path.join(self.data_dir, "*_image.nii.gz")))
+        labels = sorted(
+            glob.glob(os.path.join(self.data_dir, "*_label.nii.gz")))
         data_dicts = [
             {"image": image_name, "label": label_name}
-            for image_name, label_name in zip(train_images, train_labels)
+            for image_name, label_name in zip(images, labels)
         ]
-        train_files, val_files = data_dicts[:-9], data_dicts[-9:]
+        # TODO: randomize data_dicts
+        random.shuffle(data_dicts)
+        assert len(data_dicts) == 50, f'data_dicts is not 50 long but rather {len(data_dicts)}'
+        train_files, val_files, test_files = data_dicts[:35], data_dicts[35:45], data_dicts[45:]
 
-        # set deterministic training for reproducibility
-        set_determinism(seed=0)
 
         # define the data transforms
         train_transforms = Compose(
@@ -144,13 +152,13 @@ class Net(pytorch_lightning.LightningModule):
     def train_dataloader(self):
         train_loader = DataLoader(
             self.train_ds, batch_size=2, shuffle=True,
-            num_workers=4, collate_fn=list_data_collate,
+            num_workers=4, collate_fn=list_data_collate
         )
         return train_loader
 
     def val_dataloader(self):
         val_loader = DataLoader(
-            self.val_ds, batch_size=1, num_workers=4)
+        self.val_ds, batch_size=1, num_workers=4)
         return val_loader
 
     def configure_optimizers(self):

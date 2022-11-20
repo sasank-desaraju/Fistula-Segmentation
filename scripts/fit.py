@@ -30,10 +30,10 @@ import glob
 from net import Net
 
 
-data_dir = ''
+data_dir = '/home/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/'
 
 # initialise the LightningModule
-net = Net()
+net = Net(data_dir)
 
 root_dir = os.getcwd()
 
@@ -45,9 +45,12 @@ tb_logger = pytorch_lightning.loggers.TensorBoardLogger(
 
 # initialise Lightning's trainer.
 trainer = pytorch_lightning.Trainer(
+    fast_dev_run=True,
     #gpus=[0],
-    gpus=-1,        # this is the number of gpus to use, right?
-    max_epochs=600,
+    accelerator='gpu',
+    devices=-1,        # this is the number of gpus to use, right?
+    auto_select_gpus=True,
+    max_epochs=100,
     logger=tb_logger,
     enable_checkpointing=True,
     num_sanity_val_steps=1,
