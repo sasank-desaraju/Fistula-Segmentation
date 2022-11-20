@@ -1,0 +1,3 @@
+# Stuff to not include in git repo
+
+*.ckpt
