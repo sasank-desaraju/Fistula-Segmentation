@@ -30,7 +30,7 @@ import glob
 from net import Net
 
 
-data_dir = '/home/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/'
+data_dir = '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/'
 
 # initialise the LightningModule
 net = Net(data_dir)
@@ -54,8 +54,7 @@ trainer = pytorch_lightning.Trainer(
     logger=tb_logger,
     enable_checkpointing=True,
     num_sanity_val_steps=1,
-    log_every_n_steps=16,
-    data_dir=data_dir
+    log_every_n_steps=16
 )
 
 # train

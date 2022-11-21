@@ -28,6 +28,8 @@ import os
 import glob
 import random
 
+from dataset import FistulaDataset
+
 #print_config()
 
 class Net(pytorch_lightning.LightningModule):
@@ -60,18 +62,22 @@ class Net(pytorch_lightning.LightningModule):
         random.seed(42)
 
         # set up the correct data path
-        # TODO: change this bit to the proper way to split the data
-        # probably just move the data to train and val directories
-        # and then get the train and val images from their respective directories
-        images = sorted(
-            glob.glob(os.path.join(self.data_dir, "*_image.nii.gz")))
-        labels = sorted(
-            glob.glob(os.path.join(self.data_dir, "*_label.nii.gz")))
+        #images = sorted(glob.glob(os.path.join(self.data_dir, "*_image.nii.gz"), recursive=True))
+        images = []
+        labels = []
+        for root, dirs, files in os.walk(self.data_dir):
+            for file in files:
+                if file.endswith("_image.nii.gz"):
+                    images.append(os.path.join(root, file))
+                if file.endswith("_label.nii.gz"):
+                    labels.append(os.path.join(root, file))
+        images = sorted(images)
+        labels = sorted(labels)
+        #labels = sorted(glob.glob(os.path.join(self.data_dir, "*_label.nii.gz"), recursive=True))
         data_dicts = [
             {"image": image_name, "label": label_name}
             for image_name, label_name in zip(images, labels)
         ]
-        # TODO: randomize data_dicts
         random.shuffle(data_dicts)
         assert len(data_dicts) == 50, f'data_dicts is not 50 long but rather {len(data_dicts)}'
         train_files, val_files, test_files = data_dicts[:35], data_dicts[35:45], data_dicts[45:]
@@ -137,28 +143,39 @@ class Net(pytorch_lightning.LightningModule):
 
         # we use cached datasets - these are 10x faster than regular datasets
         self.train_ds = CacheDataset(
-            data=train_files, transform=train_transforms,
+            #data=train_files, transform=train_transforms,
+            data=train_files, transform=None,
             cache_rate=1.0, num_workers=4,
         )
+
+        self.train_dataset = FistulaDataset(data=train_files, transform=None)
+
         self.val_ds = CacheDataset(
-            data=val_files, transform=val_transforms,
+            #data=val_files, transform=val_transforms,
+            data=val_files, transform=None,
             cache_rate=1.0, num_workers=4,
         )
+
+        self.val_dataset = FistulaDataset(data=val_files, transform=None)
 #         self.train_ds = monai.data.Dataset(
 #             data=train_files, transform=train_transforms)
 #         self.val_ds = monai.data.Dataset(
 #             data=val_files, transform=val_transforms)
 
     def train_dataloader(self):
-        train_loader = DataLoader(
+        old_train_loader = DataLoader(
             self.train_ds, batch_size=2, shuffle=True,
             num_workers=4, collate_fn=list_data_collate
         )
+
+        train_loader = DataLoader(self.train_dataset, batch_size=1, shuffle=True, num_workers=4)
         return train_loader
 
     def val_dataloader(self):
-        val_loader = DataLoader(
+        old_val_loader = DataLoader(
         self.val_ds, batch_size=1, num_workers=4)
+
+        val_loader = DataLoader(self.val_dataset, batch_size=1, num_workers=4)
         return val_loader
 
     def configure_optimizers(self):
@@ -167,6 +184,12 @@ class Net(pytorch_lightning.LightningModule):
 
     def training_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
+        images = images[:, None, :, :, :]
+        #images = torch.cuda.TorchTensor(images)
+        images.to_tensor()
+        #print('images is')
+        #print(images)
+        #print(f'images shape: {images.shape}')
         output = self.forward(images)
         loss = self.loss_function(output, labels)
         tensorboard_logs = {"train_loss": loss.item()}
@@ -174,8 +197,10 @@ class Net(pytorch_lightning.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
+        # TODO: What is roi_size? And sw_batch_size?
         roi_size = (160, 160, 160)
-        sw_batch_size = 4
+        sw_batch_size = 1
+        # TODO: What is sliding_window_inference?
         outputs = sliding_window_inference(
             images, roi_size, sw_batch_size, self.forward)
         loss = self.loss_function(outputs, labels)
