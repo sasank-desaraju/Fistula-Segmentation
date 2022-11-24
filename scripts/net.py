@@ -185,11 +185,11 @@ class Net(pytorch_lightning.LightningModule):
     def training_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
         images = images[:, None, :, :, :]
-        #images = torch.cuda.TorchTensor(images)
-        images.to_tensor()
+        labels = labels[:, None, :, :, :]
         #print('images is')
         #print(images)
         #print(f'images shape: {images.shape}')
+        print(torch.cuda.memory_summary(device=None, abbreviated=False))
         output = self.forward(images)
         loss = self.loss_function(output, labels)
         tensorboard_logs = {"train_loss": loss.item()}

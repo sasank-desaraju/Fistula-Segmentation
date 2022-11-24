@@ -29,11 +29,14 @@ import glob
 import random
 import nibabel as nib
 import numpy as np
+import SimpleITK as sitk
 
 class FistulaDataset(torch.utils.data.Dataset):
     def __init__(self, data, transform=None):
         self.data = data
         self.transform = transform
+        self.resample = sitk.ResampleImageFilter()
+        self.resample.SetSize((96, 512, 512))
         """
         self.data = glob.glob(os.path.join(self.data_dir, '*.nii.gz'))
         self.data.sort()
@@ -51,10 +54,19 @@ class FistulaDataset(torch.utils.data.Dataset):
             idx = idx.tolist()
         '''
         
-        image = nib.load(self.data[idx]['image'])
-        image = np.array(image.dataobj)
-        label = nib.load(self.data[idx]['label'])
-        label = np.array(label.dataobj)
+        #image = nib.load(self.data[idx]['image'])
+        image = sitk.ReadImage(self.data[idx]['image'], imageIO="NiftiImageIO")
+        image = self.resample.Execute(image)
+        image = sitk.GetArrayFromImage(image)       # This might be redundant. Maybe only either this or the next line is needed.
+        image = np.array(image, dtype=np.float32)
+        #image = np.array(image.dataobj, dtype=np.float32)
+
+        #label = nib.load(self.data[idx]['label'])
+        label = sitk.ReadImage(self.data[idx]['label'], imageIO="NiftiImageIO")
+        label = self.resample.Execute(label)
+        label = sitk.GetArrayFromImage(label)       # This might be redundant. Maybe only either this or the next line is needed.
+        label = np.array(label, dtype=np.float32)
+        #label = np.array(label.dataobj, dtype=np.float32)
 
         sample = {'image': image, 'label': label}
 
