@@ -26,11 +26,18 @@ import tempfile
 import shutil
 import os
 import glob
+import argparse
 
 from net import Net
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--dataroot', type=str, required=False,
+                    default='/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/',
+                    help='Directory for where images are stored')
+args = parser.parse_args()
 
-data_dir = '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/'
+data_dir = args.dataroot
+#data_dir = '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/'
 
 # initialise the LightningModule
 net = Net(data_dir)

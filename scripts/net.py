@@ -27,6 +27,7 @@ import shutil
 import os
 import glob
 import random
+from torch.profiler import profile, record_function, ProfilerActivity
 
 from dataset import FistulaDataset
 
@@ -53,7 +54,13 @@ class Net(pytorch_lightning.LightningModule):
         self.best_val_epoch = 0
 
     def forward(self, x):
-        return self._model(x)
+        with profile(activities=[ProfilerActivity.CPU],
+                profile_memory=True, record_shapes=True) as prof:
+            # TODO: We're getting an OOM error here. How big is the model?
+            # How big are the loaded nifi images?
+            output = self._model(x)
+            print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
+            return output
 
     def prepare_data(self):
 
@@ -191,8 +198,12 @@ class Net(pytorch_lightning.LightningModule):
         #print(f'images shape: {images.shape}')
         print(torch.cuda.memory_summary(device=None, abbreviated=False))
         output = self.forward(images)
+            #with record_function("model_inference"):
+            #    logits = self._model(images)
         loss = self.loss_function(output, labels)
         tensorboard_logs = {"train_loss": loss.item()}
+
+
         return {"loss": loss, "log": tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
