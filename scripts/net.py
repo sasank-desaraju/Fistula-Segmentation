@@ -52,15 +52,18 @@ class Net(pytorch_lightning.LightningModule):
         self.dice_metric = DiceMetric(include_background=False, reduction="mean", get_not_nans=False)
         self.best_val_dice = 0
         self.best_val_epoch = 0
+        self.prepare_data()
 
     def forward(self, x):
+        """
         with profile(activities=[ProfilerActivity.CPU],
                 profile_memory=True, record_shapes=True) as prof:
             # TODO: We're getting an OOM error here. How big is the model?
             # How big are the loaded nifi images?
-            output = self._model(x)
-            print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
-            return output
+        """
+        output = self._model(x)
+            #print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
+        return output
 
     def prepare_data(self):
 
@@ -149,19 +152,23 @@ class Net(pytorch_lightning.LightningModule):
         )
 
         # we use cached datasets - these are 10x faster than regular datasets
+        """
         self.train_ds = CacheDataset(
             #data=train_files, transform=train_transforms,
             data=train_files, transform=None,
             cache_rate=1.0, num_workers=4,
         )
+        """
 
         self.train_dataset = FistulaDataset(data=train_files, transform=None)
 
+        """
         self.val_ds = CacheDataset(
             #data=val_files, transform=val_transforms,
             data=val_files, transform=None,
             cache_rate=1.0, num_workers=4,
         )
+        """
 
         self.val_dataset = FistulaDataset(data=val_files, transform=None)
 #         self.train_ds = monai.data.Dataset(
@@ -170,17 +177,21 @@ class Net(pytorch_lightning.LightningModule):
 #             data=val_files, transform=val_transforms)
 
     def train_dataloader(self):
+        """
         old_train_loader = DataLoader(
             self.train_ds, batch_size=2, shuffle=True,
             num_workers=4, collate_fn=list_data_collate
         )
+        """
 
-        train_loader = DataLoader(self.train_dataset, batch_size=1, shuffle=True, num_workers=4)
+        train_loader = DataLoader(self.train_dataset, batch_size=5, shuffle=True, num_workers=4)
         return train_loader
 
     def val_dataloader(self):
+        """
         old_val_loader = DataLoader(
         self.val_ds, batch_size=1, num_workers=4)
+        """
 
         val_loader = DataLoader(self.val_dataset, batch_size=1, num_workers=4)
         return val_loader
@@ -209,11 +220,31 @@ class Net(pytorch_lightning.LightningModule):
     def validation_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
         # TODO: What is roi_size? And sw_batch_size?
-        roi_size = (160, 160, 160)
+        #roi_size = (160, 160, 160)
+        # Let's make roi_size smaller in all dimensions than the actual image (512,512,96)
+        #roi_size = (64, 64, 64)
+        roi_size = (64, 64, -1)
         sw_batch_size = 1
         # TODO: What is sliding_window_inference?
+        # TODO: okay, sliding_window_inference ends up calling fall_back_tuple
+        # , which seems to think that image_size_ is 2-dimensional, not 3-dimensional
+        # Where is "image_size_" even coming from???
+        # Found "image_size_" in the source code for sliding_window_inference.
+        # Okay, sliding_window_inference assumes the input is batchxchannelxspatial.
+        # I think what happened to us is our channel dimension was implicitly squeezed since it's 1.
+        # Thus, we need to add a channel dimension to our input.
+        # Thus, we need to unsqueeze our input at index=1.
+        # If we added it at index=0, we would nuke ourselves if we changed our batch size from 1 lol.
+
+        # Artificially putting a batch dimension in the image size to fix the problem.
+        # This actually worked smh.
+        images = images.unsqueeze(1)
+        labels = labels.unsqueeze(1)
+        print('inputs.shape is ' + str(images.shape))
         outputs = sliding_window_inference(
             images, roi_size, sw_batch_size, self.forward)
+        print('outputs.shape is ' + str(outputs.shape))
+        print('labels.shape is ' + str(labels.shape))
         loss = self.loss_function(outputs, labels)
         outputs = [self.post_pred(i) for i in decollate_batch(outputs)]
         labels = [self.post_label(i) for i in decollate_batch(labels)]
