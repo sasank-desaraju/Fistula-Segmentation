@@ -184,7 +184,7 @@ class Net(pytorch_lightning.LightningModule):
         )
         """
 
-        train_loader = DataLoader(self.train_dataset, batch_size=5, shuffle=True, num_workers=4)
+        train_loader = DataLoader(self.train_dataset, batch_size=1, shuffle=True, num_workers=4)
         return train_loader
 
     def val_dataloader(self):
@@ -207,7 +207,7 @@ class Net(pytorch_lightning.LightningModule):
         #print('images is')
         #print(images)
         #print(f'images shape: {images.shape}')
-        print(torch.cuda.memory_summary(device=None, abbreviated=False))
+        #print(torch.cuda.memory_summary(device=None, abbreviated=False))
         output = self.forward(images)
             #with record_function("model_inference"):
             #    logits = self._model(images)
@@ -240,11 +240,11 @@ class Net(pytorch_lightning.LightningModule):
         # This actually worked smh.
         images = images.unsqueeze(1)
         labels = labels.unsqueeze(1)
-        print('inputs.shape is ' + str(images.shape))
+        #print('inputs.shape is ' + str(images.shape))
         outputs = sliding_window_inference(
             images, roi_size, sw_batch_size, self.forward)
-        print('outputs.shape is ' + str(outputs.shape))
-        print('labels.shape is ' + str(labels.shape))
+        #print('outputs.shape is ' + str(outputs.shape))
+        #print('labels.shape is ' + str(labels.shape))
         loss = self.loss_function(outputs, labels)
         outputs = [self.post_pred(i) for i in decollate_batch(outputs)]
         labels = [self.post_label(i) for i in decollate_batch(labels)]

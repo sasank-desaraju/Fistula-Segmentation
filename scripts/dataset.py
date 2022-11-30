@@ -62,7 +62,7 @@ class FistulaDataset(torch.utils.data.Dataset):
         #image = np.array(image.dataobj, dtype=np.float32)
         image = torch.from_numpy(image)
         #image = torch.unsqueeze(image, 0)
-        print('image shape: ', image.shape)
+        #print('image shape: ', image.shape)
 
         #label = nib.load(self.data[idx]['label'])
         label = sitk.ReadImage(self.data[idx]['label'], imageIO="NiftiImageIO")
@@ -72,7 +72,7 @@ class FistulaDataset(torch.utils.data.Dataset):
         #label = np.array(label.dataobj, dtype=np.float32)
         label = torch.from_numpy(label)
         #label = torch.unsqueeze(label, 0)
-        print('label shape: ', label.shape)
+        #print('label shape: ', label.shape)
 
         sample = {'image': image, 'label': label}
 

@@ -97,8 +97,8 @@ with torch.no_grad():
         # Unsqueezing the channel dimension *rolls eyes*.
         val_data["image"] = val_data["image"].unsqueeze(1)
         val_data["label"] = val_data["label"].unsqueeze(1)
-        print('val image shape is ', val_data["image"].shape)
-        print('val label shape is ', val_data["label"].shape)
+        #print('val image shape is ', val_data["image"].shape)
+        #print('val label shape is ', val_data["label"].shape)
         val_outputs = sliding_window_inference(
             val_data["image"].to(device), roi_size, sw_batch_size, net
         )
