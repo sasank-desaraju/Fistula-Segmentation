@@ -58,7 +58,7 @@ tb_logger = pytorch_lightning.loggers.TensorBoardLogger(
 
 # initialise Lightning's trainer.
 trainer = pytorch_lightning.Trainer(
-    fast_dev_run=False,
+    fast_dev_run=True,
     strategy=args.strategy,
     #gpus=[0],
     accelerator='gpu',
@@ -93,9 +93,9 @@ with torch.no_grad():
         #roi_size = (160, 160, 160)
         # Using the same roi_size as in the training set.
         #roi_size = (64, 64, 64)
-        roi_size = (512, 512, 96)
+        #roi_size = (512, 512, 96)
         # Bigger batch size, though. I guess it's fine...
-        sw_batch_size = 4
+        #sw_batch_size = 4
         # Unsqueezing the channel dimension *rolls eyes*.
         val_data["image"] = val_data["image"].unsqueeze(1)
         val_data["label"] = val_data["label"].unsqueeze(1)

@@ -30,6 +30,7 @@ import random
 import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
+from math import floor, ceil
 
 class FistulaDataset(torch.utils.data.Dataset):
     def __init__(self, data, transform=None):
@@ -54,6 +55,7 @@ class FistulaDataset(torch.utils.data.Dataset):
             idx = idx.tolist()
         '''
         
+        """
         #image = nib.load(self.data[idx]['image'])
         image = sitk.ReadImage(self.data[idx]['image'], imageIO="NiftiImageIO")
         image = self.resample.Execute(image)
@@ -73,6 +75,26 @@ class FistulaDataset(torch.utils.data.Dataset):
         label = torch.from_numpy(label)
         #label = torch.unsqueeze(label, 0)
         #print('label shape: ', label.shape)
+        """
+
+        image = nib.load(self.data[idx]['image'])
+        image = np.array(image.dataobj, dtype=np.float32)
+        size = image.shape
+        image = np.pad(image,
+                        ((floor((512 - size[0])/2), ceil((512 - size[0])/2)),
+                        (floor((512 - size[1])/2), ceil((512 - size[1])/2)),
+                        (floor((96 - size[2])/2), ceil((96 - size[2])/2))),
+                        'constant', constant_values=(0, 0))
+        image = torch.from_numpy(image)
+
+        label = nib.load(self.data[idx]['label'])
+        label = np.array(label.dataobj, dtype=np.float32)
+        label = np.pad(label,
+                        ((floor((512 - size[0])/2), ceil((512 - size[0])/2)),
+                        (floor((512 - size[1])/2), ceil((512 - size[1])/2)),
+                        (floor((96 - size[2])/2), ceil((96 - size[2])/2))),
+                        'constant', constant_values=(0, 0))
+        label = torch.from_numpy(label)
 
         sample = {'image': image, 'label': label}
 
