@@ -56,6 +56,9 @@ tb_logger = pytorch_lightning.loggers.TensorBoardLogger(
 
 #ddp = DDPStrategy(find_unused_parameters=False)
 
+
+
+"""
 # initialise Lightning's trainer.
 trainer = pytorch_lightning.Trainer(
     fast_dev_run=False,
@@ -64,12 +67,12 @@ trainer = pytorch_lightning.Trainer(
     accelerator='gpu',
     devices=-1,        # this is the number of gpus to use, right?
     auto_select_gpus=True,
-    max_epochs=100,
-    #max_epochs=3,
+    #max_epochs=100,
+    max_epochs=3,
     logger=tb_logger,
     enable_checkpointing=True,
     num_sanity_val_steps=1,
-    log_every_n_steps=8
+    log_every_n_steps=16
 )
 
 # train
@@ -82,6 +85,11 @@ print(
 
 # Saving model
 torch.save(net.state_dict(), 'checkpoints/latest_model.pth')
+"""
+
+# Load model
+net.load_state_dict(torch.load('checkpoints/latest_model.pth'))
+
 
 # Evaluating the model on the validation set.
 # Is this legit to evaluate on the validation set?
@@ -89,11 +97,10 @@ net.eval()
 device = torch.device("cuda:0")
 net.to(device)
 with torch.no_grad():
-    for i, val_data in enumerate(net.val_dataloader()):
+    for i, val_data in enumerate(net.test_dataloader()):
         #roi_size = (160, 160, 160)
         # Using the same roi_size as in the training set.
-        #roi_size = (64, 64, 64)
-        roi_size = (512, 512, 96)
+        roi_size = (64, 64, 64)
         # Bigger batch size, though. I guess it's fine...
         sw_batch_size = 4
         # Unsqueezing the channel dimension *rolls eyes*.
@@ -101,18 +108,20 @@ with torch.no_grad():
         val_data["label"] = val_data["label"].unsqueeze(1)
         #print('val image shape is ', val_data["image"].shape)
         #print('val label shape is ', val_data["label"].shape)
-        #val_outputs = sliding_window_inference(val_data["image"].to(device), roi_size, sw_batch_size, net)
-        val_outputs = net(val_data["image"].to(device))
+        val_outputs = sliding_window_inference(
+            val_data["image"].to(device), roi_size, sw_batch_size, net
+        )
         # plot the slice [:, :, 80]
         plt.figure("check", (18, 6))
         plt.subplot(1, 3, 1)
         plt.title(f"image {i}")
-        plt.imshow(val_data["image"][0, 0, :, :, 48], cmap="gray")
+        plt.imshow(val_data["image"][0, 0, :, :, 80], cmap="gray")
         plt.subplot(1, 3, 2)
         plt.title(f"label {i}")
-        plt.imshow(val_data["label"][0, 0, :, :, 48])
+        plt.imshow(val_data["label"][0, 0, :, :, 80])
         plt.subplot(1, 3, 3)
         plt.title(f"output {i}")
-        plt.imshow(torch.argmax(val_outputs, dim=1).detach().cpu()[0, :, :, 48])
+        plt.imshow(torch.argmax(
+            val_outputs, dim=1).detach().cpu()[0, :, :, 80])
         #plt.show()
-        plt.savefig('val_plots/latest_run/val_image_{}.png'.format(i))
+        plt.savefig('test_plots/latest_run/val_image_{}.png'.format(i))

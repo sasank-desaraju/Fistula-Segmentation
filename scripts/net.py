@@ -46,10 +46,14 @@ class Net(pytorch_lightning.LightningModule):
             num_res_units=2,
             norm=Norm.BATCH
         )
-        self.loss_function = DiceLoss(to_onehot_y=True, softmax=True)
+        #self.loss_function = DiceLoss(to_onehot_y=True, softmax=True)
+        # TODO: Do we want to use to_onehot_y?
+        # It seems like some other people are indeed using it.
+        self.loss_function = DiceLoss(to_onehot_y=True, sigmoid=True)
         self.post_pred = Compose([EnsureType("tensor", device="cpu"), AsDiscrete(argmax=True, to_onehot=2)])
         self.post_label = Compose([EnsureType("tensor", device="cpu"), AsDiscrete(to_onehot=2)])
-        self.dice_metric = DiceMetric(include_background=False, reduction="mean", get_not_nans=False)
+        #self.dice_metric = DiceMetric(include_background=False, reduction="mean", get_not_nans=False)
+        self.dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=False)
         self.best_val_dice = 0
         self.best_val_epoch = 0
         self.prepare_data()
@@ -58,8 +62,9 @@ class Net(pytorch_lightning.LightningModule):
         """
         with profile(activities=[ProfilerActivity.CPU],
                 profile_memory=True, record_shapes=True) as prof:
-            # TODO: We're getting an OOM error here. How big is the model?
-            # How big are the loaded nifi images?
+            # FIXED: We're getting an OOM error here. How big is the model?
+            # This was fixed for now by only running it on HPG.
+            # How big are the loaded nifti images?
         """
         output = self._model(x)
             #print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
@@ -176,6 +181,8 @@ class Net(pytorch_lightning.LightningModule):
 #         self.val_ds = monai.data.Dataset(
 #             data=val_files, transform=val_transforms)
 
+        self.test_dataset = FistulaDataset(data=test_files, transform=None)
+
     def train_dataloader(self):
         """
         old_train_loader = DataLoader(
@@ -195,6 +202,10 @@ class Net(pytorch_lightning.LightningModule):
 
         val_loader = DataLoader(self.val_dataset, batch_size=1, num_workers=4)
         return val_loader
+    
+    def test_dataloader(self):
+        test_loader = DataLoader(self.test_dataset, batch_size=1, num_workers=4)
+        return test_loader
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self._model.parameters(), 1e-4)
@@ -223,7 +234,8 @@ class Net(pytorch_lightning.LightningModule):
         #roi_size = (160, 160, 160)
         # Let's make roi_size smaller in all dimensions than the actual image (512,512,96)
         #roi_size = (64, 64, 64)
-        roi_size = (64, 64, -1)
+        #roi_size = (64, 64, -1)
+        roi_size = (512, 512, 96)
         sw_batch_size = 1
         # TODO: What is sliding_window_inference?
         # TODO: okay, sliding_window_inference ends up calling fall_back_tuple
@@ -241,14 +253,16 @@ class Net(pytorch_lightning.LightningModule):
         images = images.unsqueeze(1)
         labels = labels.unsqueeze(1)
         #print('inputs.shape is ' + str(images.shape))
-        outputs = sliding_window_inference(
-            images, roi_size, sw_batch_size, self.forward)
+        #outputs = sliding_window_inference(images, roi_size, sw_batch_size, self.forward)
+        outputs = self.forward(images)
         #print('outputs.shape is ' + str(outputs.shape))
         #print('labels.shape is ' + str(labels.shape))
         loss = self.loss_function(outputs, labels)
+        #print('val loss is ' + str(loss))
         outputs = [self.post_pred(i) for i in decollate_batch(outputs)]
         labels = [self.post_label(i) for i in decollate_batch(labels)]
         self.dice_metric(y_pred=outputs, y=labels)
+        #print('dice metric is ' + str(self.dice_metric.aggregate().item()))
         return {"val_loss": loss, "val_number": len(outputs)}
 
     def validation_epoch_end(self, outputs):
