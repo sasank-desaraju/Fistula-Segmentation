@@ -46,10 +46,11 @@ class Net(pytorch_lightning.LightningModule):
             num_res_units=2,
             norm=Norm.BATCH
         )
-        #self.loss_function = DiceLoss(to_onehot_y=True, softmax=True)
+        # TODO: Should we use 2 out_channels and softmax or 1 out_channel and sigmoid?
+        self.loss_function = DiceLoss(to_onehot_y=True, softmax=True)
         # TODO: Do we want to use to_onehot_y?
         # It seems like some other people are indeed using it.
-        self.loss_function = DiceLoss(to_onehot_y=True, sigmoid=True)
+        #self.loss_function = DiceLoss(to_onehot_y=True, sigmoid=True)
         self.post_pred = Compose([EnsureType("tensor", device="cpu"), AsDiscrete(argmax=True, to_onehot=2)])
         self.post_label = Compose([EnsureType("tensor", device="cpu"), AsDiscrete(to_onehot=2)])
         #self.dice_metric = DiceMetric(include_background=False, reduction="mean", get_not_nans=False)
@@ -110,6 +111,7 @@ class Net(pytorch_lightning.LightningModule):
                     mode=("bilinear", "nearest"),
                 ),
                 ScaleIntensityRanged(
+                    # TODO: Check these, including the a_min and a_max.
                     keys=["image"], a_min=-57, a_max=164,
                     b_min=0.0, b_max=1.0, clip=True,
                 ),
