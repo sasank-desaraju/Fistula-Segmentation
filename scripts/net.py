@@ -33,7 +33,7 @@ from dataset import FistulaDataset
 
 #print_config()
 
-class Net(pytorch_lightning.LightningModule):
+class SegmentationNet(pytorch_lightning.LightningModule):
     def __init__(self, data_dir):
         super().__init__()
         self.data_dir = data_dir
