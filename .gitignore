@@ -3,3 +3,6 @@
 *.ckpt
 slurm/*
 checkpoints/*
+*.ckpt
+log/*
+dev_figs/*
