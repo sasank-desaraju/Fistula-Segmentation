@@ -15,7 +15,7 @@ class Configuration:
             'MODEL_NAME': 'Development',
             'RUN_NAME': time.strftime('%Y-%m-%d-%H-%M-%S'),
             'WANDB_RUN_GROUP': 'Local',
-            'FAST_DEV_RUN': True,  # Runs inputted batches (True->1) and disables logging and some callbacks
+            'FAST_DEV_RUN': False,  # Runs inputted batches (True->1) and disables logging and some callbacks
             'MAX_EPOCHS': 1,
             'MAX_STEPS': -1,    # -1 means it will do all steps and be limited by epochs
             'STRATEGY': None    # This is the training strategy. Should be 'ddp' for multi-GPU (like HPG)
@@ -27,26 +27,19 @@ class Configuration:
             'RANDOM_STATE': 42,
         }
 
-        # TODO: Must be figured out and changed, obviously
         self.dataset = {
-            'DATA_NAME': 'Project_Split',
-            'USE_ALBUMENTATIONS': False,
-            'NUM_CLASSES': 10,
-            'NUM_CHANNELS': 3,
-            'IMAGE_HEIGHT': 300,
-            'IMAGE_WIDTH': 300,
-            'IMAGE_FILE': '/home/sasank/Documents/FML/FML-Bucket/data/data_train.npy',
-            'LABEL_FILE': '/home/sasank/Documents/FML/FML-Bucket/data/labels_train.npy'
+            'DATA_NAME': 'BaseSplit',
+            'USE_TRANSFORMS': False,
+            'IMAGE_ROOT': '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/',
+            'IMAGE_SIZE': (512, 512, 96)
         }
 
         self.datamodule = {
-            'NPY_DIRECTORY': '/data/',
-            'CKPT_FILE': '/home/sasank/Documents/FML/FML-Bucket/checkpoints/epoch=0-step=2377.ckpt',
+            'CKPT_FILE': '',
             'BATCH_SIZE': 1,
             'SHUFFLE': True,        # Only for training; for test and val this is set in the datamodule script to False
             'NUM_WORKERS': 2,
             'PIN_MEMORY': False
-            #'SUBSET_PIXELS': True - this is now in dataset
         }
 
 
@@ -65,5 +58,4 @@ class Configuration:
             A.RandomRotate90(p=0.2),
             A.Transpose(p=0.2),
         ],
-        keypoint_params=A.KeypointParams(format='xy', remove_invisible=False),
         p=1.0)

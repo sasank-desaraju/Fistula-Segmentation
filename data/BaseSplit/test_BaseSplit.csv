@@ -1,0 +1,11 @@
+image,label,patient_id
+202/202_image.nii.gz,202/202_label.nii.gz,202
+7/7_image.nii.gz,7/7_label.nii.gz,7
+158/158_image.nii.gz,158/158_label.nii.gz,158
+160/160_image.nii.gz,160/160_label.nii.gz,160
+57/57_image.nii.gz,57/57_label.nii.gz,57
+159/159_image.nii.gz,159/159_label.nii.gz,159
+155/155_image.nii.gz,155/155_label.nii.gz,155
+153/153_image.nii.gz,153/153_label.nii.gz,153
+149/149_image.nii.gz,149/149_label.nii.gz,149
+47/47_image.nii.gz,47/47_label.nii.gz,47

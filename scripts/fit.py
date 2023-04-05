@@ -8,7 +8,7 @@ from importlib import import_module
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.accelerators import find_usable_cuda_devices
 from net import SegmentationNet
 from datamodule import SegmentationDataModule
@@ -26,11 +26,19 @@ def main(config, wandb_logger):
 
     checkpoint_callback = ModelCheckpoint(
         dirpath='checkpoints/',
-        monitor='val_loss',
+        monitor='val/loss',
         filename=wandb_logger.name + 'lowest_val_loss',
         save_top_k=1,
         mode='min'
     )
+    earlystopping_callback = EarlyStopping(
+        monitor='val/loss',
+        min_delta=0.00,
+        patience=10,
+        verbose=False,
+        mode='min'
+    )
+
     # Our trainer object contains a lot of important info.
     trainer = pl.Trainer(
         accelerator='cuda',
@@ -41,7 +49,7 @@ def main(config, wandb_logger):
         default_root_dir=os.getcwd(),
         #callbacks=[JTMLCallback(config, wandb_run)],    # pass in the callbacks we want
         #callbacks=[JTMLCallback(config, wandb_run), save_best_val_checkpoint_callback],
-        callbacks=[checkpoint_callback],
+        callbacks=[checkpoint_callback, earlystopping_callback],
         log_every_n_steps=5,
         fast_dev_run=config.init['FAST_DEV_RUN'],
         max_epochs=config.init['MAX_EPOCHS'],

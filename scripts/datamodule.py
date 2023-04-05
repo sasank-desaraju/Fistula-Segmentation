@@ -42,11 +42,11 @@ class SegmentationDataModule(pl.LightningDataModule):
 
     def setup(self, stage):
 
-        self.training_set = Dataset(config=self.config,
+        self.training_set = FistulaDataset(config=self.config,
                                             evaluation_type='train')
-        self.validation_set = Dataset(config=self.config,
+        self.validation_set = FistulaDataset(config=self.config,
                                             evaluation_type='val')
-        self.test_set = Dataset(config=self.config,
+        self.test_set = FistulaDataset(config=self.config,
                                             evaluation_type='test')
 
         return

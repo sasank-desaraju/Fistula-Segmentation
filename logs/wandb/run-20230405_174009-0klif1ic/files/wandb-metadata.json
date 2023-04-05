@@ -1,0 +1,87 @@
+{
+    "os": "Linux-5.19.0-38-generic-x86_64-with-glibc2.35",
+    "python": "3.10.9",
+    "heartbeatAt": "2023-04-05T21:40:10.247381",
+    "startedAt": "2023-04-05T21:40:09.835029",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "config"
+    ],
+    "state": "running",
+    "program": "/home/sasank/Documents/GitRepos/Fistula-Segmentation/scripts/fit.py",
+    "codePath": "scripts/fit.py",
+    "git": {
+        "remote": "git@github.com:sasank-desaraju/Fistula-Segmentation.git",
+        "commit": "24f84ccf473f814e45d960465703e86629f5a2e1"
+    },
+    "email": "sasank.desaraju@ufl.edu",
+    "root": "/home/sasank/Documents/GitRepos/Fistula-Segmentation",
+    "host": "Sasank-Ubuntu-Desktop",
+    "username": "sasank",
+    "executable": "/home/sasank/miniconda3/envs/jtml/bin/python",
+    "cpu_count": 4,
+    "cpu_count_logical": 8,
+    "cpu_freq": {
+        "current": 4700.0325,
+        "min": 800.0,
+        "max": 4650.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 4700.191,
+            "min": 800.0,
+            "max": 4500.0
+        },
+        {
+            "current": 4700.038,
+            "min": 800.0,
+            "max": 4500.0
+        },
+        {
+            "current": 4699.988,
+            "min": 800.0,
+            "max": 4700.0
+        },
+        {
+            "current": 4700.003,
+            "min": 800.0,
+            "max": 4700.0
+        },
+        {
+            "current": 4699.969,
+            "min": 800.0,
+            "max": 4700.0
+        },
+        {
+            "current": 4700.037,
+            "min": 800.0,
+            "max": 4700.0
+        },
+        {
+            "current": 4699.973,
+            "min": 800.0,
+            "max": 4700.0
+        },
+        {
+            "current": 4700.061,
+            "min": 800.0,
+            "max": 4700.0
+        }
+    ],
+    "disk": {
+        "total": 61.53879928588867,
+        "used": 53.20117950439453
+    },
+    "gpu": "NVIDIA GeForce GTX 1060 6GB",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce GTX 1060 6GB",
+            "memory_total": 6442450944
+        }
+    ],
+    "memory": {
+        "total": 15.429702758789062
+    }
+}

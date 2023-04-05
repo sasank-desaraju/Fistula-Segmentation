@@ -1,4 +1,3 @@
-import pytorch_lightning
 from monai.utils import set_determinism
 from monai.transforms import (
     AsDiscrete,
@@ -21,6 +20,7 @@ from monai.data import CacheDataset, list_data_collate, decollate_batch, DataLoa
 from monai.config import print_config
 from monai.apps import download_and_extract
 import torch
+import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 import tempfile
 import shutil
@@ -31,33 +31,36 @@ from torch.profiler import profile, record_function, ProfilerActivity
 
 from dataset import FistulaDataset
 
-#print_config()
-
-class SegmentationNet(pytorch_lightning.LightningModule):
-    def __init__(self, data_dir):
+class SegmentationNet(pl.LightningModule):
+    def __init__(self, config):
         super().__init__()
-        self.data_dir = data_dir
         self._model = UNet(
             spatial_dims=3,
             in_channels=1,
-            out_channels=2,
+            out_channels=1,
             channels=(16, 32, 64, 128, 256),
             strides=(2, 2, 2, 2),
             num_res_units=2,
             norm=Norm.BATCH
         )
+        # * Send the model to GPU
+        self._model.cuda()
+        # * Assert that the model is on GPU
+        assert next(self._model.parameters()).is_cuda, 'Model is not on GPU but rather on ' + str(next(self._model.parameters()).device)
+
         # TODO: Should we use 2 out_channels and softmax or 1 out_channel and sigmoid?
-        self.loss_function = DiceLoss(to_onehot_y=True, softmax=True)
+        self.loss_function = DiceLoss(to_onehot_y=False, softmax=False)
         # TODO: Do we want to use to_onehot_y?
         # It seems like some other people are indeed using it.
         #self.loss_function = DiceLoss(to_onehot_y=True, sigmoid=True)
+        # TODO: What are post_pred and post_label???
         self.post_pred = Compose([EnsureType("tensor", device="cpu"), AsDiscrete(argmax=True, to_onehot=2)])
         self.post_label = Compose([EnsureType("tensor", device="cpu"), AsDiscrete(to_onehot=2)])
-        #self.dice_metric = DiceMetric(include_background=False, reduction="mean", get_not_nans=False)
+
         self.dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=False)
         self.best_val_dice = 0
         self.best_val_epoch = 0
-        self.prepare_data()
+        #self.prepare_data()
 
     def forward(self, x):
         """
@@ -73,6 +76,7 @@ class SegmentationNet(pytorch_lightning.LightningModule):
 
     def prepare_data(self):
 
+        """
         # set deterministic training for reproducibility
         set_determinism(seed=42)        # HHG2G reference lol
         random.seed(42)
@@ -97,6 +101,7 @@ class SegmentationNet(pytorch_lightning.LightningModule):
         random.shuffle(data_dicts)
         assert len(data_dicts) == 50, f'data_dicts is not 50 long but rather {len(data_dicts)}'
         train_files, val_files, test_files = data_dicts[:35], data_dicts[35:45], data_dicts[45:]
+        """
 
 
         # define the data transforms
@@ -167,7 +172,7 @@ class SegmentationNet(pytorch_lightning.LightningModule):
         )
         """
 
-        self.train_dataset = FistulaDataset(data=train_files, transform=None)
+        #self.train_dataset = FistulaDataset(data=train_files, transform=None)
 
         """
         self.val_ds = CacheDataset(
@@ -177,37 +182,13 @@ class SegmentationNet(pytorch_lightning.LightningModule):
         )
         """
 
-        self.val_dataset = FistulaDataset(data=val_files, transform=None)
+        #self.val_dataset = FistulaDataset(data=val_files, transform=None)
 #         self.train_ds = monai.data.Dataset(
 #             data=train_files, transform=train_transforms)
 #         self.val_ds = monai.data.Dataset(
 #             data=val_files, transform=val_transforms)
 
-        self.test_dataset = FistulaDataset(data=test_files, transform=None)
-
-    def train_dataloader(self):
-        """
-        old_train_loader = DataLoader(
-            self.train_ds, batch_size=2, shuffle=True,
-            num_workers=4, collate_fn=list_data_collate
-        )
-        """
-
-        train_loader = DataLoader(self.train_dataset, batch_size=1, shuffle=True, num_workers=4)
-        return train_loader
-
-    def val_dataloader(self):
-        """
-        old_val_loader = DataLoader(
-        self.val_ds, batch_size=1, num_workers=4)
-        """
-
-        val_loader = DataLoader(self.val_dataset, batch_size=1, num_workers=4)
-        return val_loader
-    
-    def test_dataloader(self):
-        test_loader = DataLoader(self.test_dataset, batch_size=1, num_workers=4)
-        return test_loader
+        #self.test_dataset = FistulaDataset(data=test_files, transform=None)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self._model.parameters(), 1e-4)
@@ -215,59 +196,64 @@ class SegmentationNet(pytorch_lightning.LightningModule):
 
     def training_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
-        images = images[:, None, :, :, :]
-        labels = labels[:, None, :, :, :]
-        #print('images is')
-        #print(images)
-        #print(f'images shape: {images.shape}')
-        #print(torch.cuda.memory_summary(device=None, abbreviated=False))
-        output = self.forward(images)
-            #with record_function("model_inference"):
-            #    logits = self._model(images)
-        loss = self.loss_function(output, labels)
-        tensorboard_logs = {"train_loss": loss.item()}
+        preds = self(images)
 
+        loss = self.loss_function(preds, labels)
+        dice_score = self.dice_metric(y_pred=preds, y=labels)
+        self.log_dict(
+            {
+                "train/loss": loss,
+                "train/dice": dice_score
+            },
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True
+        )
 
-        return {"loss": loss, "log": tensorboard_logs}
+        return loss
 
     def validation_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
-        # TODO: What is roi_size? And sw_batch_size?
-        #roi_size = (160, 160, 160)
-        # Let's make roi_size smaller in all dimensions than the actual image (512,512,96)
-        #roi_size = (64, 64, 64)
-        #roi_size = (64, 64, -1)
-        roi_size = (512, 512, 96)
-        sw_batch_size = 1
-        # TODO: What is sliding_window_inference?
-        # TODO: okay, sliding_window_inference ends up calling fall_back_tuple
-        # , which seems to think that image_size_ is 2-dimensional, not 3-dimensional
-        # Where is "image_size_" even coming from???
-        # Found "image_size_" in the source code for sliding_window_inference.
-        # Okay, sliding_window_inference assumes the input is batchxchannelxspatial.
-        # I think what happened to us is our channel dimension was implicitly squeezed since it's 1.
-        # Thus, we need to add a channel dimension to our input.
-        # Thus, we need to unsqueeze our input at index=1.
-        # If we added it at index=0, we would nuke ourselves if we changed our batch size from 1 lol.
+        preds = self(images)
+        # TODO: Figure out sliding window stuff
+        loss = self.loss_function(preds, labels)
+        dice_score = self.dice_metric(y_pred=preds, y=labels)
+        self.log_dict(
+            {
+                "val/loss": loss,
+                "val/dice": dice_score
+            },
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True
+        )
+        # I'm doing this for the callbacks to work. Idk how it works/conflicts with the log_dict above.
+        self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
-        # Artificially putting a batch dimension in the image size to fix the problem.
-        # This actually worked smh.
-        images = images.unsqueeze(1)
-        labels = labels.unsqueeze(1)
-        #print('inputs.shape is ' + str(images.shape))
-        #outputs = sliding_window_inference(images, roi_size, sw_batch_size, self.forward)
-        outputs = self.forward(images)
-        #print('outputs.shape is ' + str(outputs.shape))
-        #print('labels.shape is ' + str(labels.shape))
-        loss = self.loss_function(outputs, labels)
-        #print('val loss is ' + str(loss))
-        outputs = [self.post_pred(i) for i in decollate_batch(outputs)]
-        labels = [self.post_label(i) for i in decollate_batch(labels)]
-        self.dice_metric(y_pred=outputs, y=labels)
-        #print('dice metric is ' + str(self.dice_metric.aggregate().item()))
-        return {"val_loss": loss, "val_number": len(outputs)}
+        #outputs = [self.post_pred(i) for i in decollate_batch(outputs)]
+        #labels = [self.post_label(i) for i in decollate_batch(labels)]
+        
+        return loss
 
-    def validation_epoch_end(self, outputs):
+    def test_step(self, batch, batch_idx):
+        images, labels = batch["image"], batch["label"]
+        preds = self(images)
+
+        loss = self.loss_function(preds, labels)
+        dice_score = self.dice_metric(y_pred=preds, y=labels)
+        self.log_dict(
+            {
+                "test/loss": loss,
+                "test/dice": dice_score
+            },
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True
+        )
+
+        return loss
+
+    def old_validation_epoch_end(self, outputs):
         val_loss, num_items = 0, 0
         for output in outputs:
             val_loss += output["val_loss"].sum().item()

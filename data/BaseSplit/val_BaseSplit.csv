@@ -1,0 +1,9 @@
+image,label,patient_id
+9/9_image.nii.gz,9/9_label.nii.gz,9
+19/19_image.nii.gz,19/19_label.nii.gz,19
+199/199_image.nii.gz,199/199_label.nii.gz,199
+191/191_image.nii.gz,191/191_label.nii.gz,191
+198/198_image.nii.gz,198/198_label.nii.gz,198
+4/4_image.nii.gz,4/4_label.nii.gz,4
+22/22_image.nii.gz,22/22_label.nii.gz,22
+51/51_image.nii.gz,51/51_label.nii.gz,51
