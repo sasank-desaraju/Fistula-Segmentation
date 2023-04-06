@@ -1,127 +1,101 @@
-import pytorch_lightning
-from pytorch_lightning.strategies.ddp import DDPStrategy
-from monai.utils import set_determinism
-from monai.transforms import (
-    AsDiscrete,
-    EnsureChannelFirstd,
-    Compose,
-    CropForegroundd,
-    LoadImaged,
-    Orientationd,
-    RandCropByPosNegLabeld,
-    ScaleIntensityRanged,
-    Spacingd,
-    EnsureType,
-)
-from monai.networks.nets import UNet
-from monai.networks.layers import Norm
-from monai.metrics import DiceMetric
-from monai.losses import DiceLoss
-from monai.inferers import sliding_window_inference
-from monai.data import CacheDataset, list_data_collate, decollate_batch, DataLoader
-from monai.config import print_config
-from monai.apps import download_and_extract
-import torch
-import matplotlib.pyplot as plt
-import tempfile
-import shutil
-import os
-import glob
-import argparse
-
-from net import Net
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--dataroot', type=str, required=False,
-                    default='/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/',
-                    help='Directory for where images are stored')
-parser.add_argument('--strategy', type=str, required=False,
-                    default='/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/',
-                    help='Directory for where images are stored')
-args = parser.parse_args()
-
-data_dir = args.dataroot
-#data_dir = '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/'
-
-# initialise the LightningModule
-net = Net(data_dir)
-
-root_dir = os.getcwd()
-
-# set up loggers and checkpoints
-log_dir = os.path.join(root_dir, "logs")
-tb_logger = pytorch_lightning.loggers.TensorBoardLogger(
-    save_dir=log_dir
-)
-
-#ddp = DDPStrategy(find_unused_parameters=False)
-
-
-
 """
-# initialise Lightning's trainer.
-trainer = pytorch_lightning.Trainer(
-    fast_dev_run=False,
-    strategy=args.strategy,
-    #gpus=[0],
-    accelerator='gpu',
-    devices=-1,        # this is the number of gpus to use, right?
-    auto_select_gpus=True,
-    #max_epochs=100,
-    max_epochs=3,
-    logger=tb_logger,
-    enable_checkpointing=True,
-    num_sanity_val_steps=1,
-    log_every_n_steps=16
-)
+Sasank Desaraju
+4/6/23
+"""
 
-# train
-trainer.fit(net)
+from datetime import datetime
+from importlib import import_module
+import torch
+import pytorch_lightning as pl
+from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.accelerators import find_usable_cuda_devices
+from net import SegmentationNet
+from datamodule import SegmentationDataModule
+import sys
+import os
+import time
+import wandb
 
-print(
-    f"train completed, best_metric: {net.best_val_dice:.4f} "
-    f"at epoch {net.best_val_epoch}"
+
+def main(config, wandb_logger):
+
+    data_module = SegmentationDataModule(config=config)
+
+    #model = SegmentationNet(config=config)
+    if config.datamodule['CKPT_FILE'] != None:
+        model = SegmentationNet.load_from_checkpoint(config.datamodule['CKPT_FILE'], config=config)
+        print('Checkpoint file loaded from ' + config.datamodule['CKPT_FILE'])
+    elif config.datamodule['CKPT_FILE'] == None:
+        try:
+            model = SegmentationNet.load_from_checkpoint(CKPT_DIR + config.init['WANDB_RUN_GROUP'] + '/' + config.init['MODEL_NAME'] +'.ckpt', config=config)
+            print('Using checkpoint file from ' + CKPT_DIR + config.init['WANDB_RUN_GROUP'] + '/' + config.init['MODEL_NAME'] +'.ckpt')
+        except:
+            print("No checkpoint .ckpt file in default location at " + CKPT_DIR + config.init['WANDB_RUN_GROUP'] + '/' + config.init['MODEL_NAME'] +'.ckpt')
+
+    checkpoint_callback = ModelCheckpoint(
+        dirpath='checkpoints/',
+        monitor='val/loss',
+        filename=wandb_logger.name + 'lowest_val_loss',
+        save_top_k=1,
+        mode='min'
+    )
+    earlystopping_callback = EarlyStopping(
+        monitor='val/loss',
+        min_delta=0.00,
+        patience=10,
+        verbose=False,
+        mode='min'
     )
 
-# Saving model
-torch.save(net.state_dict(), 'checkpoints/latest_model.pth')
-"""
+    # Our trainer object contains a lot of important info.
+    trainer = pl.Trainer(
+        accelerator='cuda',
+        devices=find_usable_cuda_devices(-1),
+        #devices=-1,     # use all available devices (GPUs)
+        #auto_select_gpus=True,  # helps use all GPUs, not quite understood...      # Deprecated
+        logger=wandb_logger,   # tried to use a WandbLogger object. Hasn't worked...
+        default_root_dir=os.getcwd(),
+        #callbacks=[JTMLCallback(config, wandb_run)],    # pass in the callbacks we want
+        #callbacks=[JTMLCallback(config, wandb_run), save_best_val_checkpoint_callback],
+        #callbacks=[checkpoint_callback, earlystopping_callback],
+        log_every_n_steps=5,
+        fast_dev_run=config.init['FAST_DEV_RUN'],
+        max_epochs=config.init['MAX_EPOCHS'],
+        max_steps=config.init['MAX_STEPS'],
+        strategy=config.init['STRATEGY'])
 
-# Load model
-net.load_state_dict(torch.load('checkpoints/latest_model.pth'))
+    trainer.test(model, data_module)
 
 
-# Evaluating the model on the validation set.
-# Is this legit to evaluate on the validation set?
-net.eval()
-device = torch.device("cuda:0")
-net.to(device)
-with torch.no_grad():
-    for i, val_data in enumerate(net.test_dataloader()):
-        #roi_size = (160, 160, 160)
-        # Using the same roi_size as in the training set.
-        roi_size = (64, 64, 64)
-        # Bigger batch size, though. I guess it's fine...
-        sw_batch_size = 4
-        # Unsqueezing the channel dimension *rolls eyes*.
-        val_data["image"] = val_data["image"].unsqueeze(1)
-        val_data["label"] = val_data["label"].unsqueeze(1)
-        #print('val image shape is ', val_data["image"].shape)
-        #print('val label shape is ', val_data["label"].shape)
-        val_outputs = sliding_window_inference(
-            val_data["image"].to(device), roi_size, sw_batch_size, net
-        )
-        # plot the slice [:, :, 80]
-        plt.figure("check", (18, 6))
-        plt.subplot(1, 3, 1)
-        plt.title(f"image {i}")
-        plt.imshow(val_data["image"][0, 0, :, :, 80], cmap="gray")
-        plt.subplot(1, 3, 2)
-        plt.title(f"label {i}")
-        plt.imshow(val_data["label"][0, 0, :, :, 80])
-        plt.subplot(1, 3, 3)
-        plt.title(f"output {i}")
-        plt.imshow(torch.argmax(
-            val_outputs, dim=1).detach().cpu()[0, :, :, 80])
-        #plt.show()
-        plt.savefig('test_plots/latest_run/val_image_{}.png'.format(i))
+if __name__ == '__main__':
+
+    CONFIG_DIR = os.getcwd() + '/config/'
+
+    sys.path.append(CONFIG_DIR)
+    config_module = import_module(sys.argv[1])
+
+    # Instantiating the config file
+    config = config_module.Configuration()
+
+    # Setting the checkpoint directory
+    CKPT_DIR = os.getcwd() + '/checkpoints/'
+
+    wandb_logger = WandbLogger(
+        project=config.init['PROJECT_NAME'],
+        name=config.init['RUN_NAME'],
+        log_model=True,
+        #prefix='fit_',
+        group=config.init['WANDB_RUN_GROUP'],
+        job_type='test',
+        save_dir='logs/'
+    )
+
+    wandb_logger.log_hyperparams(params=config.init|config.etl|config.dataset|config.datamodule|config.hparams)
+    # Print the wandb logger hyperparameters
+    print(wandb_logger.experiment.config)
+
+    main(config, wandb_logger)
+
+    # Sync and close the Wandb logging. Good to have for DDP, I believe.
+    wandb.finish()
