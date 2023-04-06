@@ -4,5 +4,5 @@
 slurm/*
 checkpoints/*
 *.ckpt
-log/*
+logs/*
 dev_figs/*
