@@ -14,11 +14,11 @@ class Configuration:
             'PROJECT_NAME': 'FistulaSegmentation',
             'MODEL_NAME': 'Development',
             'RUN_NAME': time.strftime('%Y-%m-%d-%H-%M-%S'),
-            'WANDB_RUN_GROUP': 'Local',
+            'WANDB_RUN_GROUP': 'HiPerGator',
             'FAST_DEV_RUN': True,  # Runs inputted batches (True->1) and disables logging and some callbacks
             'MAX_EPOCHS': 1,
             'MAX_STEPS': -1,    # -1 means it will do all steps and be limited by epochs
-            'STRATEGY': None    # This is the training strategy. Should be 'ddp' for multi-GPU (like HPG)
+            'STRATEGY': 'auto'    # This is the training strategy. Should be 'ddp' for multi-GPU (like HPG)
         }
         self.etl = {
             'DATA_DIR': "data",
@@ -30,13 +30,13 @@ class Configuration:
         self.dataset = {
             'DATA_NAME': 'BaseSplit',
             'USE_TRANSFORMS': False,
-            'IMAGE_ROOT': '/blue/ezimmer2/Fistula_AI/Images/',
+            'IMAGE_ROOT': '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Images/Segmentations/',
             'IMAGE_SIZE': (512, 512, 96)
         }
 
         self.datamodule = {
             'CKPT_FILE': '',
-            'BATCH_SIZE': 1,
+            'BATCH_SIZE': 5,
             'SHUFFLE': True,        # Only for training; for test and val this is set in the datamodule script to False
             'NUM_WORKERS': 2,
             'PIN_MEMORY': False
