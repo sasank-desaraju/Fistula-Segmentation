@@ -199,7 +199,7 @@ class SegmentationNet(pl.LightningModule):
         preds = self(images)
 
         loss = self.loss_function(preds, labels)
-        dice_score = self.dice_metric(y_pred=preds, y=labels)
+        dice_score = self.dice_metric(y_pred=preds, y=labels).mean()
         self.log_dict(
             {
                 "train/loss": loss,
@@ -217,7 +217,7 @@ class SegmentationNet(pl.LightningModule):
         preds = self(images)
         # TODO: Figure out sliding window stuff
         loss = self.loss_function(preds, labels)
-        dice_score = self.dice_metric(y_pred=preds, y=labels)
+        dice_score = self.dice_metric(y_pred=preds, y=labels).mean()
         self.log_dict(
             {
                 "val/loss": loss,
@@ -240,7 +240,7 @@ class SegmentationNet(pl.LightningModule):
         preds = self(images)
 
         loss = self.loss_function(preds, labels)
-        dice_score = self.dice_metric(y_pred=preds, y=labels)
+        dice_score = self.dice_metric(y_pred=preds, y=labels).mean()
         self.log_dict(
             {
                 "test/loss": loss,
