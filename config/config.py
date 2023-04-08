@@ -18,7 +18,7 @@ class Configuration:
             'FAST_DEV_RUN': True,  # Runs inputted batches (True->1) and disables logging and some callbacks
             'MAX_EPOCHS': 1,
             'MAX_STEPS': -1,    # -1 means it will do all steps and be limited by epochs
-            'STRATEGY': None    # This is the training strategy. Should be 'ddp' for multi-GPU (like HPG)
+            'STRATEGY': 'auto'    # This is the training strategy. Should be 'ddp' for multi-GPU (like HPG)
         }
         self.etl = {
             'DATA_DIR': "data",
