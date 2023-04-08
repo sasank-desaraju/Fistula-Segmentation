@@ -30,7 +30,7 @@ class Configuration:
         self.dataset = {
             'DATA_NAME': 'BaseSplit',
             'USE_TRANSFORMS': False,
-            'IMAGE_ROOT': '/blue/ezimmer2/Fistula_AI/Images/',
+            'IMAGE_ROOT': '/blue/ezimmer2/Fistula_AI/Images/Segmentations/',
             'IMAGE_SIZE': (512, 512, 96)
         }
 
@@ -38,7 +38,7 @@ class Configuration:
             'CKPT_FILE': '',
             'BATCH_SIZE': 5,
             'SHUFFLE': True,        # Only for training; for test and val this is set in the datamodule script to False
-            'NUM_WORKERS': 2,
+            'NUM_WORKERS': 1,
             'PIN_MEMORY': False
         }
 

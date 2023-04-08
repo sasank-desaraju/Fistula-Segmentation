@@ -8,4 +8,5 @@ logs/*
 dev_figs/*
 val_plots/*
 scripts/__pycache__/*
+config/__pycache__/*
 */__pycache__/*
