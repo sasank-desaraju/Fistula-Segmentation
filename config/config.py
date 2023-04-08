@@ -16,7 +16,7 @@ class Configuration:
             'RUN_NAME': time.strftime('%Y-%m-%d-%H-%M-%S'),
             'WANDB_RUN_GROUP': 'Local',
             'FAST_DEV_RUN': True,  # Runs inputted batches (True->1) and disables logging and some callbacks
-            'MAX_EPOCHS': 1,
+            'MAX_EPOCHS': 3,
             'MAX_STEPS': -1,    # -1 means it will do all steps and be limited by epochs
             'STRATEGY': 'auto'    # This is the training strategy. Should be 'ddp' for multi-GPU (like HPG)
         }
@@ -30,7 +30,7 @@ class Configuration:
         self.dataset = {
             'DATA_NAME': 'BaseSplit',
             'USE_TRANSFORMS': False,
-            'IMAGE_ROOT': '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Images/Segmentations/',
+            'IMAGE_ROOT': '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/',
             'IMAGE_SIZE': (512, 512, 96)
         }
 

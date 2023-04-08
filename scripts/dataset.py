@@ -146,10 +146,12 @@ class FistulaDataset(torch.utils.data.Dataset):
         #print('label tensor shape: ', label_resampled.shape)
 
 
-        sample = {'image': image_resampled,
+        sample = {
+                    'image': image_resampled,
                     'label': label_resampled,
-                    'image_original': image,
-                    'label_original': label,
-                    'patient_id': patient_id}
+                    #'image_original': image,
+                    #'label_original': label,
+                    'patient_id': patient_id
+                }
 
         return sample

@@ -6,5 +6,6 @@ checkpoints/*
 *.ckpt
 logs/*
 dev_figs/*
+val_plots/*
 scripts/__pycache__/*
 */__pycache__/*
