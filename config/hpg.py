@@ -38,7 +38,7 @@ class Configuration:
             'CKPT_FILE': '',
             'BATCH_SIZE': 5,
             'SHUFFLE': True,        # Only for training; for test and val this is set in the datamodule script to False
-            'NUM_WORKERS': 1,
+            'NUM_WORKERS': 2,
             'PIN_MEMORY': False
         }
 
