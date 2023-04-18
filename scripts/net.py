@@ -22,6 +22,8 @@ from monai.apps import download_and_extract
 import torch
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
+import numpy as np
+import nibabel as nib
 import tempfile
 import shutil
 import os
@@ -199,7 +201,7 @@ class SegmentationNet(pl.LightningModule):
         preds = self(images)
 
         loss = self.loss_function(preds, labels)
-        dice_score = self.dice_metric(y_pred=preds, y=labels).mean()
+        dice_score = self.dice_metric(y_pred=preds, y=labels).mean()            # Average across batch
         self.log_dict(
             {
                 "train/loss": loss,
@@ -217,7 +219,7 @@ class SegmentationNet(pl.LightningModule):
         preds = self(images)
         # TODO: Figure out sliding window stuff
         loss = self.loss_function(preds, labels)
-        dice_score = self.dice_metric(y_pred=preds, y=labels).mean()
+        dice_score = self.dice_metric(y_pred=preds, y=labels).mean()            # Average across batch
         self.log_dict(
             {
                 "val/loss": loss,
@@ -240,7 +242,7 @@ class SegmentationNet(pl.LightningModule):
         preds = self(images)
 
         loss = self.loss_function(preds, labels)
-        dice_score = self.dice_metric(y_pred=preds, y=labels).mean()
+        dice_score = self.dice_metric(y_pred=preds, y=labels).mean()            # Average across batch
         self.log_dict(
             {
                 "test/loss": loss,
@@ -250,6 +252,22 @@ class SegmentationNet(pl.LightningModule):
             on_epoch=True,
             prog_bar=True
         )
+
+        # * Save the predictions in .nii.gz format
+        for i in range(len(preds)):
+            pred = preds[i]
+            label = labels[i]
+            image = images[i]
+            pred = torch.argmax(pred, dim=0)
+            pred = pred.detach().cpu().numpy()
+            label = label.detach().cpu().numpy()
+            image = image.detach().cpu().numpy()
+            pred = nib.Nifti1Image(pred, np.eye(4))
+            label = nib.Nifti1Image(label, np.eye(4))
+            image = nib.Nifti1Image(image, np.eye(4))
+            nib.save(pred, f"pred_{i}.nii.gz")
+            nib.save(label, f"label_{i}.nii.gz")
+            nib.save(image, f"image_{i}.nii.gz")
 
         return loss
 

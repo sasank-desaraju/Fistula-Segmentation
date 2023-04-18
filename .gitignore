@@ -1,5 +1,6 @@
 # Stuff to not include in git repo
 
+test_files/*
 *.ckpt
 slurm/*
 checkpoints/*
