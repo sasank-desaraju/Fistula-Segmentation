@@ -11,7 +11,7 @@ from monai.transforms import (
     Spacingd,
     EnsureType,
 )
-from monai.networks.nets import UNet
+from monai.networks.nets import UNet, SwinUNETR
 from monai.networks.layers import Norm
 from monai.metrics import DiceMetric
 from monai.losses import DiceLoss
@@ -34,6 +34,7 @@ from dataset import FistulaDataset
 class SegmentationNet(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
+        """
         self._model = UNet(
             spatial_dims=3,
             in_channels=1,
@@ -42,6 +43,13 @@ class SegmentationNet(pl.LightningModule):
             strides=(2, 2, 2, 2),
             num_res_units=2,
             norm=Norm.BATCH
+        )
+        """
+        self._model = SwinUNETR(
+            spatial_dims=3,
+            in_channels=1,
+            out_channels=1,
+            channels=(2, 2, 2, 2)
         )
         # * Send the model to GPU
         self._model.cuda()
