@@ -49,7 +49,7 @@ class SegmentationNet(pl.LightningModule):
             spatial_dims=3,
             in_channels=1,
             out_channels=1,
-            channels=(2, 2, 2, 2)
+            depths=(2, 2, 2, 2)
         )
         # * Send the model to GPU
         self._model.cuda()
