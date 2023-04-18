@@ -48,6 +48,7 @@ class SegmentationNet(pl.LightningModule):
         )
         """
         self._model = SwinUNETR(
+            img_size=config.dataset['IMAGE_SIZE'],
             spatial_dims=3,
             in_channels=1,
             out_channels=1,
