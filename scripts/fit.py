@@ -49,7 +49,8 @@ def main(config, wandb_logger):
         default_root_dir=os.getcwd(),
         #callbacks=[JTMLCallback(config, wandb_run)],    # pass in the callbacks we want
         #callbacks=[JTMLCallback(config, wandb_run), save_best_val_checkpoint_callback],
-        callbacks=[checkpoint_callback, earlystopping_callback],
+        #callbacks=[checkpoint_callback, earlystopping_callback],
+        callbacks=[checkpoint_callback],
         log_every_n_steps=5,
         fast_dev_run=config.init['FAST_DEV_RUN'],
         max_epochs=config.init['MAX_EPOCHS'],
