@@ -221,7 +221,8 @@ class SegmentationNet(pl.LightningModule):
             },
             on_step=False,
             on_epoch=True,
-            prog_bar=True
+            prog_bar=True,
+            sync_dist=True
         )
 
         return loss
@@ -239,7 +240,8 @@ class SegmentationNet(pl.LightningModule):
             },
             on_step=False,
             on_epoch=True,
-            prog_bar=True
+            prog_bar=True,
+            sync_dist=True
         )
         # I'm doing this for the callbacks to work. Idk how it works/conflicts with the log_dict above.
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
@@ -262,7 +264,8 @@ class SegmentationNet(pl.LightningModule):
             },
             on_step=False,
             on_epoch=True,
-            prog_bar=True
+            prog_bar=True,
+            sync_dist=True
         )
 
         # * Save the predictions in .nii.gz format
