@@ -13,7 +13,7 @@ from monai.transforms import (
 )
 from monai.networks.nets import UNet, SwinUNETR
 from monai.networks.layers import Norm
-from monai.metrics import DiceMetric, IoUMetric
+from monai.metrics import DiceMetric, compute_dice, compute_iou
 from monai.losses import DiceLoss
 from monai.inferers import sliding_window_inference
 from monai.data import CacheDataset, list_data_collate, decollate_batch, DataLoader
@@ -71,8 +71,9 @@ class SegmentationNet(pl.LightningModule):
         self.post_pred = Compose([EnsureType("tensor", device="cpu"), AsDiscrete(argmax=True, to_onehot=2)])
         self.post_label = Compose([EnsureType("tensor", device="cpu"), AsDiscrete(to_onehot=2)])
 
-        self.dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=False)
-        self.IOU = IoUMetric(include_background=True, reduction="mean", get_not_nans=False)
+        #self.dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=False)
+        self.dice_metric = compute_dice
+        self.iou_metric = compute_iou
         self.best_val_dice = 0
         self.best_val_epoch = 0
         #self.prepare_data()
