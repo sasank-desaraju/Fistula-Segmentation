@@ -12,7 +12,7 @@ class Configuration:
     def __init__(self):
         self.init = {
             'PROJECT_NAME': 'FistulaSegmentation',
-            'MODEL_NAME': 'Development',
+            'MODEL_NAME': 'Research',
             'RUN_NAME': time.strftime('%Y-%m-%d-%H-%M-%S'),
             'WANDB_RUN_GROUP': 'HiPerGator',
             'FAST_DEV_RUN': False,  # Runs inputted batches (True->1) and disables logging and some callbacks
