@@ -13,7 +13,7 @@ from monai.transforms import (
 )
 from monai.networks.nets import UNet, SwinUNETR
 from monai.networks.layers import Norm
-from monai.metrics import DiceMetric
+from monai.metrics import DiceMetric, IoUMetric
 from monai.losses import DiceLoss
 from monai.inferers import sliding_window_inference
 from monai.data import CacheDataset, list_data_collate, decollate_batch, DataLoader
@@ -72,6 +72,7 @@ class SegmentationNet(pl.LightningModule):
         self.post_label = Compose([EnsureType("tensor", device="cpu"), AsDiscrete(to_onehot=2)])
 
         self.dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=False)
+        self.IOU = IoUMetric(include_background=True, reduction="mean", get_not_nans=False)
         self.best_val_dice = 0
         self.best_val_epoch = 0
         #self.prepare_data()
@@ -220,10 +221,13 @@ class SegmentationNet(pl.LightningModule):
         #print(f'Train preds shape: {preds.shape} and labels shape: {labels.shape}')
         loss = self.loss_function(preds, labels)
         dice_score = self.dice_metric(y_pred=preds, y=labels).mean()            # Average across batch
+        iou_score = self.iou_metric(y_pred=preds, y=labels).mean()              # Average across batch
         self.log_dict(
             {
                 "train/loss": loss,
-                "train/dice": dice_score
+                "train/dice": dice_score,
+                "train/IOU": iou_score,
+                "train/epoch": self.current_epoch
             },
             on_step=False,
             on_epoch=True,
@@ -245,10 +249,13 @@ class SegmentationNet(pl.LightningModule):
         #print(f'Preds shape: {preds.shape} and labels shape: {labels.shape}')
         loss = self.loss_function(preds, labels)
         dice_score = self.dice_metric(y_pred=preds, y=labels).mean()            # Average across batch
+        iou_score = self.iou_metric(y_pred=preds, y=labels).mean()              # Average across batch
         self.log_dict(
             {
                 "val/loss": loss,
-                "val/dice": dice_score
+                "val/dice": dice_score,
+                "val/IOU": iou_score,
+                "val/epoch": self.current_epoch
             },
             on_step=False,
             on_epoch=True,
@@ -275,10 +282,13 @@ class SegmentationNet(pl.LightningModule):
 
         loss = self.loss_function(preds, labels)
         dice_score = self.dice_metric(y_pred=preds, y=labels).mean()            # Average across batch
+        iou_score = self.iou_metric(y_pred=preds, y=labels).mean()              # Average across batch
         self.log_dict(
             {
                 "test/loss": loss,
-                "test/dice": dice_score
+                "test/dice": dice_score,
+                "test/IOU": iou_score,
+                "test/epoch": self.current_epoch        # Idk what this even means lol
             },
             on_step=False,
             on_epoch=True,
