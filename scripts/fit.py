@@ -100,7 +100,8 @@ if __name__ == '__main__':
 
     # If using tensor cores (such as the A100s on HPG), then set precision to 16-bit
     if config.init['WANDB_RUN_GROUP'] == 'HiPerGator':
-        torch.set_float32_matmul_precision('medium' | 'high')
+        #torch.set_float32_matmul_precision('medium')
+        torch.set_float32_matmul_precision('high')
     
     torch.multiprocessing.set_sharing_strategy('file_system')
 
