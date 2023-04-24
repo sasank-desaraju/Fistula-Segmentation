@@ -46,7 +46,8 @@ class FistulaDataset(torch.utils.data.Dataset):
         self.data = pd.read_csv(os.path.join(self.config.etl['DATA_DIR'], self.config.dataset['DATA_NAME'], self.evaluation_type + '_' + self.config.dataset['DATA_NAME'] + '.csv'))
 
         # * Load in the .nii.gz image and label files
-        # Each .nii file is about 50 MB when extracted. Thus, each pair is about 100 MB. train split has 32 images to about 3.2 GB of data loaded into memory. Not great, not terrible.
+        #! Not true: Each .nii file is about 50 MB when extracted. Thus, each pair is about 100 MB. train split has 32 images to about 3.2 GB of data loaded into memory. Not great, not terrible.
+        # The above is cap because loading all images into GPU exceeds the A100's 80 GB memory. Now, we are using a MONAI CacheDataset to load the data.
         self.images = []
         self.labels = []
         self.patient_ids = []

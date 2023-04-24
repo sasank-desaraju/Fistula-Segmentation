@@ -11,7 +11,8 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.accelerators import find_usable_cuda_devices
 from net import SegmentationNet
-from datamodule import SegmentationDataModule
+#from datamodule import SegmentationDataModule
+from cacheDatamodule import CacheDatamodule
 import sys
 import os
 import time
@@ -20,7 +21,8 @@ import wandb
 
 def main(config, wandb_logger):
 
-    data_module = SegmentationDataModule(config=config)
+    #data_module = SegmentationDataModule(config=config)
+    data_module = CacheDatamodule(config=config)
 
     #model = SegmentationNet(config=config)
     if config.datamodule['CKPT_FILE'] != None:

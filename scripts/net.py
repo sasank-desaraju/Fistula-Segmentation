@@ -19,6 +19,7 @@ from monai.inferers import sliding_window_inference
 from monai.data import CacheDataset, list_data_collate, decollate_batch, DataLoader
 from monai.config import print_config
 from monai.apps import download_and_extract
+from monai.transforms import SaveImage          # TODO: Use this to save test output images for comparison
 import torch
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
@@ -36,7 +37,6 @@ from dataset import FistulaDataset
 class SegmentationNet(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
-        """
         self._model = UNet(
             spatial_dims=3,
             in_channels=1,
@@ -54,6 +54,7 @@ class SegmentationNet(pl.LightningModule):
             out_channels=1,
             depths=(2, 2, 2, 2)
         )
+        """
         # * Send the model to GPU
         self._model.cuda()
         # * Assert that the model is on GPU
@@ -61,6 +62,8 @@ class SegmentationNet(pl.LightningModule):
 
         # TODO: Should we use 2 out_channels and softmax or 1 out_channel and sigmoid?
         self.loss_function = DiceLoss(to_onehot_y=False, softmax=False)
+        # Make loss function for 2 classes
+        #self.loss_function = DiceLoss(to_onehot_y=False, softmax=False)
         # TODO: Do we want to use to_onehot_y?
         # It seems like some other people are indeed using it.
         #self.loss_function = DiceLoss(to_onehot_y=True, sigmoid=True)
