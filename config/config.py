@@ -37,6 +37,7 @@ class Configuration:
         self.datamodule = {
             'CKPT_FILE': '',
             'BATCH_SIZE': 1,
+            'FIT_CACHE_NUM': 2,
             'SHUFFLE': True,        # Only for training; for test and val this is set in the datamodule script to False
             'NUM_WORKERS': 2,
             'PIN_MEMORY': False

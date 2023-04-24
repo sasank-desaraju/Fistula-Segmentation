@@ -40,7 +40,7 @@ class SegmentationNet(pl.LightningModule):
         self._model = UNet(
             spatial_dims=3,
             in_channels=1,
-            out_channels=1,
+            out_channels=2,
             channels=(16, 32, 64, 128, 256),
             strides=(2, 2, 2, 2),
             num_res_units=2,
@@ -210,8 +210,14 @@ class SegmentationNet(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
-        preds = self(images)
 
+        # Make the labels binary two-class
+        labels = torch.where(labels > 0, torch.ones_like(labels), torch.zeros_like(labels))
+        labels = torch.stack((labels, 1 - labels), dim=1)
+        labels = torch.squeeze(labels, dim=2)
+
+        preds = self(images)
+        #print(f'Train preds shape: {preds.shape} and labels shape: {labels.shape}')
         loss = self.loss_function(preds, labels)
         dice_score = self.dice_metric(y_pred=preds, y=labels).mean()            # Average across batch
         self.log_dict(
@@ -229,8 +235,14 @@ class SegmentationNet(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
+
+        # Make the labels binary two-class
+        labels = torch.where(labels > 0, torch.ones_like(labels), torch.zeros_like(labels))
+        labels = torch.stack((labels, 1 - labels), dim=1)
+        labels = torch.squeeze(labels, dim=2)
+
         preds = self(images)
-        # TODO: Figure out sliding window stuff
+        #print(f'Preds shape: {preds.shape} and labels shape: {labels.shape}')
         loss = self.loss_function(preds, labels)
         dice_score = self.dice_metric(y_pred=preds, y=labels).mean()            # Average across batch
         self.log_dict(
@@ -253,6 +265,12 @@ class SegmentationNet(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
+        
+        # Make the labels binary two-class
+        labels = torch.where(labels > 0, torch.ones_like(labels), torch.zeros_like(labels))
+        labels = torch.stack((labels, 1 - labels), dim=1)
+        labels = torch.squeeze(labels, dim=2)
+        
         preds = self(images)
 
         loss = self.loss_function(preds, labels)

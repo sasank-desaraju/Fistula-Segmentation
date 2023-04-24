@@ -131,12 +131,12 @@ class CacheDatamodule(pl.LightningDataModule):
             self.training_set = CacheDataset(data=self.train_files,
                                             transform=self.train_transforms,
                                             cache_rate=1.0,
-                                            cache_num=20,
+                                            cache_num=self.config.datamodule['FIT_CACHE_NUM'],
                                             num_workers=self.num_workers)
             self.validation_set = CacheDataset(data=self.val_files,
                                             transform=self.val_transforms,
                                             cache_rate=1.0,
-                                            cache_num=20,
+                                            cache_num=self.config.datamodule['FIT_CACHE_NUM'],
                                             num_workers=self.num_workers)
         if stage == 'test':
             """
