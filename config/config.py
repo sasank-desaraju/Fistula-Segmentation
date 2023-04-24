@@ -35,7 +35,7 @@ class Configuration:
         }
 
         self.datamodule = {
-            'CKPT_FILE': '',
+            'CKPT_FILE': '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/checkpoints/100Epoch87IOU.ckpt',
             'BATCH_SIZE': 1,
             'FIT_CACHE_NUM': 2,
             'SHUFFLE': True,        # Only for training; for test and val this is set in the datamodule script to False
