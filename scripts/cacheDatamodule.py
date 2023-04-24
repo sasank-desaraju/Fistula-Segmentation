@@ -108,12 +108,14 @@ class CacheDatamodule(pl.LightningDataModule):
         ])
         
         self.test_transforms = Compose([
-            LoadImaged(keys=['image', 'label']),
-            EnsureChannelFirstd(keys=['image', 'label']),
-            Spacingd(keys=['image', 'label'], pixdim=(1.0, 1.0, 1.0), mode=('bilinear', 'nearest')),
+            LoadImaged(keys=['image', 'label', 'resample_model']),
+            EnsureChannelFirstd(keys=['image', 'label', 'resample_model']),
+            #Spacingd(keys=['image', 'label'], pixdim=(1.0, 1.0, 1.0), mode=('bilinear', 'nearest')),
+            ResampleToMatchd(keys=['image', 'label'], key_dst='resample_model', mode=('bilinear', 'nearest')),
             Orientationd(keys=['image', 'label'], axcodes='RAS'),
             ScaleIntensityRanged(keys=['image'], a_min=-57, a_max=164, b_min=0.0, b_max=1.0, clip=True),
             CropForegroundd(keys=['image', 'label'], source_key='image'),
+            DivisiblePadd(keys=['image', 'label'], k=16),
             EnsureTyped(keys=['image', 'label'])
         ])
 
@@ -129,12 +131,12 @@ class CacheDatamodule(pl.LightningDataModule):
             self.training_set = CacheDataset(data=self.train_files,
                                             transform=self.train_transforms,
                                             cache_rate=1.0,
-                                            cache_num=2,
+                                            cache_num=20,
                                             num_workers=self.num_workers)
             self.validation_set = CacheDataset(data=self.val_files,
                                             transform=self.val_transforms,
                                             cache_rate=1.0,
-                                            cache_num=2,
+                                            cache_num=20,
                                             num_workers=self.num_workers)
         if stage == 'test':
             """

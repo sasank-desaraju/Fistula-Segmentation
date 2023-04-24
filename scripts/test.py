@@ -93,6 +93,19 @@ if __name__ == '__main__':
         save_dir='logs/'
     )
 
+    # List the names of all of the available CUDA devices
+    for device in find_usable_cuda_devices(-1):
+        #print(device)
+        # Print the device name
+        #print(torch.cuda.get_device_name(device))
+        print(f'Device {device} is a {torch.cuda.get_device_name(device)} with {torch.cuda.get_device_capability(device)} cuda capability.')
+
+    # If using tensor cores (such as the A100s on HPG), then set precision to 16-bit
+    if config.init['WANDB_RUN_GROUP'] == 'HiPerGator':
+        torch.set_float32_matmul_precision('medium' | 'high')
+    
+    torch.multiprocessing.set_sharing_strategy('file_system')
+
     wandb_logger.log_hyperparams(params=config.init|config.etl|config.dataset|config.datamodule|config.hparams)
     # Print the wandb logger hyperparameters
     print(wandb_logger.experiment.config)
