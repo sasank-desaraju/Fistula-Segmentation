@@ -119,6 +119,10 @@ class CacheDatamodule(pl.LightningDataModule):
             EnsureTyped(keys=['image', 'label'])
         ])
 
+        self.post_test_transforms = Compose([
+            Invertd
+        ])
+
     def setup(self, stage):
 
         if stage == 'fit':

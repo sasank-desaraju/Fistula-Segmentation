@@ -51,8 +51,9 @@ class SegmentationNet(pl.LightningModule):
             img_size=config.dataset['IMAGE_SIZE'],
             spatial_dims=3,
             in_channels=1,
-            out_channels=1,
-            depths=(2, 2, 2, 2)
+            out_channels=2,
+            depths=(2, 2, 2, 2),
+            num_heads=(3, 5, 12, 24)
         )
         """
         # * Send the model to GPU
@@ -218,6 +219,7 @@ class SegmentationNet(pl.LightningModule):
         labels = torch.stack((labels, 1 - labels), dim=1)
         labels = torch.squeeze(labels, dim=2)
 
+        print(f'Train images shape: {images.shape} and labels shape: {labels.shape}')
         preds = self(images)
         #print(f'Train preds shape: {preds.shape} and labels shape: {labels.shape}')
         loss = self.loss_function(preds, labels)
@@ -246,6 +248,7 @@ class SegmentationNet(pl.LightningModule):
         labels = torch.stack((labels, 1 - labels), dim=1)
         labels = torch.squeeze(labels, dim=2)
 
+        print(f'Val images shape: {images.shape} and labels shape: {labels.shape}')
         preds = self(images)
         #print(f'Preds shape: {preds.shape} and labels shape: {labels.shape}')
         loss = self.loss_function(preds, labels)
