@@ -299,6 +299,7 @@ class SegmentationNet(pl.LightningModule):
 
         # * Save the predictions in .nii.gz format
         for i in range(len(preds)):
+            break
             pred = preds[i]
             label = labels[i]
             image = images[i]
