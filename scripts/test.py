@@ -101,10 +101,10 @@ if __name__ == '__main__':
     print(f'There are {torch.cuda.device_count()} CUDA devices available')
 
     # List the names of all of the available CUDA devices
-    for device in find_usable_cuda_devices(-1):
+    for device in range(torch.cuda.device_count()):
         print(device)
         # Print the device name
-        #print(torch.cuda.get_device_name(device))
+        print(torch.cuda.get_device_name(device))
         print(f'Device {device} is a {torch.cuda.get_device_name(device)} with {torch.cuda.get_device_capability(device)} cuda capability.')
 
     # If using tensor cores (such as the A100s on HPG), then set precision to 16-bit

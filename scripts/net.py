@@ -9,7 +9,15 @@ from monai.transforms import (
     RandCropByPosNegLabeld,
     ScaleIntensityRanged,
     Spacingd,
+    ResampleToMatchd,
     EnsureType,
+    EnsureTyped,
+    RandFlipd,
+    RandRotate90d,
+    DivisiblePadd,
+    ToTensord,
+    Invertd,
+    SaveImaged
 )
 from monai.networks.nets import UNet, SwinUNETR
 from monai.networks.layers import Norm
@@ -79,6 +87,33 @@ class SegmentationNet(pl.LightningModule):
         self.best_val_dice = 0
         self.best_val_epoch = 0
         #self.prepare_data()
+
+        self.post_test_transforms = Compose([
+            Invertd(
+                keys=['pred'],
+                transform=self.test_transforms,
+                orig_keys='image',
+                meta_keys='pred_meta_dict',
+                orig_meta_keys='image_meta_dict',
+                meta_key_postfix='meta_dict',
+                nearest_interp=True,
+                to_tensor=True,
+            ),
+            AsDiscrete(
+                keys=['pred', 'label'],
+                argmax=(True, False),
+                to_onehot=2,        # 2 classes
+                n_classes=2,
+            ),
+            SaveImaged(
+                keys=['pred', 'label'],
+                meta_keys='pred_meta_dict',
+                meta_key_postfix='meta_dict',
+                output_dir='./output',
+                output_postfix='seg',
+                output_ext='.nii.gz',
+            ),
+        ])
 
     def forward(self, x):
         """
@@ -207,6 +242,7 @@ class SegmentationNet(pl.LightningModule):
 #             data=val_files, transform=val_transforms)
 
         #self.test_dataset = FistulaDataset(data=test_files, transform=None)
+
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self._model.parameters(), 1e-4)
