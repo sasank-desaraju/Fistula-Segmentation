@@ -20,6 +20,7 @@ from monai.data import CacheDataset, list_data_collate, decollate_batch, DataLoa
 from monai.config import print_config
 from monai.apps import download_and_extract
 from monai.transforms import SaveImage          # TODO: Use this to save test output images for comparison
+from monai.inferers import sliding_window_inference
 import torch
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
@@ -283,6 +284,11 @@ class SegmentationNet(pl.LightningModule):
         labels = torch.squeeze(labels, dim=2)
         
         preds = self(images)
+
+        roi_size = (160, 160, 160)
+        sw_batch_size = 4
+        batch["pred"] = sliding_window_inference(batch["image"], roi_size, sw_batch_size, self._model)
+        batch = [self.post_test_transforms(i) for i in decollate_batch(batch)]
 
         loss = self.loss_function(preds, labels)
         dice_score = self.dice_metric(y_pred=preds, y=labels).mean()            # Average across batch
