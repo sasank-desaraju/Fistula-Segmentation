@@ -30,7 +30,9 @@ from monai.transforms import (
     RandFlipd,
     RandRotate90d,
     DivisiblePadd,
-    ToTensord
+    ToTensord,
+    Invertd,
+    SaveImaged
 )
 
 
@@ -120,7 +122,30 @@ class CacheDatamodule(pl.LightningDataModule):
         ])
 
         self.post_test_transforms = Compose([
-            Invertd
+            Invertd(
+                keys=['pred'],
+                transform=self.test_transforms,
+                orig_keys='image',
+                meta_keys='pred_meta_dict',
+                orig_meta_keys='image_meta_dict',
+                meta_key_postfix='meta_dict',
+                nearest_interp=True,
+                to_tensor=True,
+            ),
+            AsDiscrete(
+                keys=['pred', 'label'],
+                argmax=(True, False),
+                to_onehot=True,
+                n_classes=2,
+            ),
+            SaveImaged(
+                keys=['pred', 'label'],
+                meta_keys='pred_meta_dict',
+                meta_key_postfix='meta_dict',
+                output_dir='./output',
+                output_postfix='seg',
+                output_ext='.nii.gz',
+            ),
         ])
 
     def setup(self, stage):
