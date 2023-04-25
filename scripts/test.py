@@ -26,6 +26,7 @@ def main(config, wandb_logger):
 
     #model = SegmentationNet(config=config)
     if config.datamodule['CKPT_FILE'] != None:
+        print('Loading checkpoint file from ' + config.datamodule['CKPT_FILE'] + '... [test.py]')
         model = SegmentationNet.load_from_checkpoint(config.datamodule['CKPT_FILE'], config=config)
         print('Checkpoint file loaded from ' + config.datamodule['CKPT_FILE'])
     elif config.datamodule['CKPT_FILE'] == None:
@@ -93,9 +94,15 @@ if __name__ == '__main__':
         save_dir='logs/'
     )
 
+    # Assert that we are using CUDA
+    assert torch.cuda.is_available(), 'CUDA is not available'
+
+    # Print the number of available CUDA devices
+    print(f'There are {torch.cuda.device_count()} CUDA devices available')
+
     # List the names of all of the available CUDA devices
     for device in find_usable_cuda_devices(-1):
-        #print(device)
+        print(device)
         # Print the device name
         #print(torch.cuda.get_device_name(device))
         print(f'Device {device} is a {torch.cuda.get_device_name(device)} with {torch.cuda.get_device_capability(device)} cuda capability.')
@@ -108,7 +115,9 @@ if __name__ == '__main__':
 
     wandb_logger.log_hyperparams(params=config.init|config.etl|config.dataset|config.datamodule|config.hparams)
     # Print the wandb logger hyperparameters
+    print('\n' + 20 * '=' + ' Wandb Logger Hyperparameters ' + 20 * '=')
     print(wandb_logger.experiment.config)
+    print(60 * '=' + '\n')
 
     main(config, wandb_logger)
 

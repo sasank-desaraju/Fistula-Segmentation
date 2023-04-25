@@ -135,7 +135,7 @@ class CacheDatamodule(pl.LightningDataModule):
             AsDiscrete(
                 keys=['pred', 'label'],
                 argmax=(True, False),
-                to_onehot=True,
+                to_onehot=2,        # 2 classes
                 n_classes=2,
             ),
             SaveImaged(
