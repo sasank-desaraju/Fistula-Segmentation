@@ -88,6 +88,18 @@ class SegmentationNet(pl.LightningModule):
         self.best_val_epoch = 0
         #self.prepare_data()
 
+        self.test_transforms = Compose([
+            LoadImaged(keys=['image', 'label', 'resample_model']),
+            EnsureChannelFirstd(keys=['image', 'label', 'resample_model']),
+            #Spacingd(keys=['image', 'label'], pixdim=(1.0, 1.0, 1.0), mode=('bilinear', 'nearest')),
+            ResampleToMatchd(keys=['image', 'label'], key_dst='resample_model', mode=('bilinear', 'nearest')),
+            Orientationd(keys=['image', 'label'], axcodes='RAS'),
+            ScaleIntensityRanged(keys=['image'], a_min=-57, a_max=164, b_min=0.0, b_max=1.0, clip=True),
+            CropForegroundd(keys=['image', 'label'], source_key='image'),
+            DivisiblePadd(keys=['image', 'label'], k=16),
+            EnsureTyped(keys=['image', 'label'])
+        ])
+
         self.post_test_transforms = Compose([
             Invertd(
                 keys=['pred'],

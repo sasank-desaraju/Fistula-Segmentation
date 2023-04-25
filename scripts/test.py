@@ -68,7 +68,7 @@ def main(config, wandb_logger):
         max_steps=config.init['MAX_STEPS'],
         strategy=config.init['STRATEGY'])
 
-    trainer.test(model, data_module)
+    trainer.test(model, datamodule=data_module)
 
 
 if __name__ == '__main__':
