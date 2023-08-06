@@ -40,4 +40,16 @@ import SimpleITK as sitk
 from math import floor, ceil
 import pandas as pd
 
-#class CacheFistulaDataset(torch.utils.data.Dataset):
+class CacheFistulaDataset(torch.utils.data.Dataset):
+    def __init__(self):
+        self.data = pd.read_csv(os.path.join(self.config.etl['DATA_DIR'], self.config.dataset['DATA_NAME'], self.evaluation_type + '_' + self.config.dataset['DATA_NAME'] + '.csv'))
+        self.images = []
+        self.labels = []
+        self.patient_ids = []
+        for i in range(len(self.data)):
+            image = sitk.ReadImage(os.path.join(self.config.dataset['IMAGE_ROOT'], self.data['image'][i]), imageIO='NiftiImageIO')
+            label = sitk.ReadImage(os.path.join(self.config.dataset['IMAGE_ROOT'], self.data['label'][i]), imageIO='NiftiImageIO')
+            patient_id = self.data['patient_id'][i]
+            self.images.append(image)
+            self.labels.append(label)
+            self.patient_ids.append(patient_id)

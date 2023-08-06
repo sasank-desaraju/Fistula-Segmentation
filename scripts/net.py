@@ -100,29 +100,34 @@ class SegmentationNet(pl.LightningModule):
             EnsureTyped(keys=['image', 'label'])
         ])
 
+        """
+        Invertd(
+            keys=['pred'],
+            transform=self.test_transforms,
+            orig_keys='image',
+            meta_keys='pred_meta_dict',
+            orig_meta_keys='image_meta_dict',
+            meta_key_postfix='meta_dict',
+            nearest_interp=True,
+            to_tensor=True,
+        ),
+        AsDiscrete(
+            keys=['pred', 'label'],
+            argmax=(True, False),
+            to_onehot=2,        # 2 classes
+            n_classes=2,
+        ),
+        """
+
         self.post_test_transforms = Compose([
-            Invertd(
-                keys=['pred'],
-                transform=self.test_transforms,
-                orig_keys='image',
-                meta_keys='pred_meta_dict',
-                orig_meta_keys='image_meta_dict',
-                meta_key_postfix='meta_dict',
-                nearest_interp=True,
-                to_tensor=True,
-            ),
-            AsDiscrete(
-                keys=['pred', 'label'],
-                argmax=(True, False),
-                to_onehot=2,        # 2 classes
-                n_classes=2,
-            ),
+            
+
             SaveImaged(
-                keys=['pred', 'label'],
-                meta_keys='pred_meta_dict',
-                meta_key_postfix='meta_dict',
+                keys=['image', 'pred', 'label'],
+                meta_keys=['image_meta_dict', 'pred_meta_dict', 'label_meta_dict'],
+                #meta_key_postfix='meta_dict',
                 output_dir='./output',
-                output_postfix='seg',
+                output_postfix='test',
                 output_ext='.nii.gz',
             ),
         ])
@@ -335,8 +340,66 @@ class SegmentationNet(pl.LightningModule):
 
         roi_size = (160, 160, 160)
         sw_batch_size = 4
-        batch["pred"] = sliding_window_inference(batch["image"], roi_size, sw_batch_size, self._model)
-        batch = [self.post_test_transforms(i) for i in decollate_batch(batch)]
+        #batch["pred"] = sliding_window_inference(batch["image"], roi_size, sw_batch_size, self._model)
+        batch["pred"] = self._model(batch["image"])
+        #batch = [self.post_test_transforms(i) for i in decollate_batch(batch)]
+
+        # Check if labels and preds are the same shape
+        #print(f'Preds shape: {preds.shape} and labels shape: {labels.shape}')
+        print(f'Preds shape: {batch["pred"].shape} and labels shape: {batch["label"].shape}')
+        # Image shape
+        #print(f'Image shape: {images.shape}')
+        print(f'Image shape: {batch["image"].shape}')
+
+        # Save the predictions in .nii.gz format using MONAI's SaveImageD without using post_test_transforms
+        #batch["pred"] = torch.argmax(batch["pred"], dim=1, keepdim=True)
+        #batch["pred"] = [self.post_pred(i) for i in decollate_batch(batch["pred"])]
+        #batch["label"] = [self.post_label(i) for i in decollate_batch(batch["label"])]
+        #batch = [self.post_test_transforms(i) for i in decollate_batch(batch)]
+        # Send the predictions and label to just one channel, with the other channel being 1 - the first channel
+        batch["pred"] = torch.argmax(batch["pred"], dim=1, keepdim=True)
+        #batch["pred"] = torch.stack((batch["pred"], 1 - batch["pred"]), dim=1)
+        #batch["pred"] = torch.squeeze(batch["pred"], dim=1)
+
+        #batch["label"] = torch.stack((batch["label"], 1 - batch["label"]), dim=1)
+        #batch["label"] = torch.squeeze(batch["label"], dim=2)
+        print(f'After proc: Preds shape: {batch["pred"].shape} and labels shape: {batch["label"].shape}')
+        # Print the pred_meta_dict and label_meta_dict
+        #print(f'Pred meta dict: {batch["pred_meta_dict"]}')
+        #print(f'Label meta dict: {batch["label_meta_dict"]}')
+
+        SaveImaged(
+            keys=['image'],
+            meta_keys=['image_meta_dict'],
+            output_dir='./output',
+            output_postfix='blah',
+            output_ext='.nii.gz',
+        )(batch)
+
+        print("Saved the image")
+
+        SaveImaged(
+            keys=['pred', 'label'],
+            #meta_keys=['pred_meta_dict', 'label_meta_dict'],
+            output_dir='./output',
+            output_postfix='blah',
+            output_ext='.nii.gz',
+            # Make the file end in .nii.gz
+        )(batch)
+
+        print("Saved the label and pred images")
+
+        SaveImaged(
+            keys=['image', 'pred', 'label'],
+            meta_keys=['image_meta_dict', 'pred_meta_dict', 'label_meta_dict'],
+            output_dir='./output'
+            #output_postfix='test',
+            #output_ext='.nii.gz',
+            # Make the file end in .nii.gz
+            #output_postfix='.nii.gz',
+        )(batch)
+
+        
 
         loss = self.loss_function(preds, labels)
         dice_score = self.dice_metric(y_pred=preds, y=labels).mean()            # Average across batch
