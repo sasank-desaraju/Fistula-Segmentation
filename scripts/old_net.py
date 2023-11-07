@@ -70,7 +70,8 @@ class SegmentationNet(pl.LightningModule):
         # * Assert that the model is on GPU
         assert next(self._model.parameters()).is_cuda, 'Model is not on GPU but rather on ' + str(next(self._model.parameters()).device)
 
-        self.loss_function = DiceLoss(to_onehot_y=True, softmax=True)
+        # TODO: Should we use 2 out_channels and softmax or 1 out_channel and sigmoid?
+        self.loss_function = DiceLoss(to_onehot_y=False, softmax=False)
         # Make loss function for 2 classes
         #self.loss_function = DiceLoss(to_onehot_y=False, softmax=False)
         # TODO: Do we want to use to_onehot_y?
@@ -79,12 +80,12 @@ class SegmentationNet(pl.LightningModule):
         # TODO: What are post_pred and post_label???
         self.post_pred = Compose([EnsureType("tensor", device="cpu"), AsDiscrete(argmax=True, to_onehot=2)])
         self.post_label = Compose([EnsureType("tensor", device="cpu"), AsDiscrete(to_onehot=2)])
-        self.dice_metric = DiceMetric(include_background=False, reduction="mean", get_not_nans=False)
-        #self.dice_metric = compute_dice
+
+        #self.dice_metric = DiceMetric(include_background=True, reduction="mean", get_not_nans=False)
+        self.dice_metric = compute_dice
         self.iou_metric = compute_iou
         self.best_val_dice = 0
         self.best_val_epoch = 0
-        self.validation_step_outputs = []
         #self.prepare_data()
 
         self.test_transforms = Compose([

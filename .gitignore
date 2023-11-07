@@ -1,5 +1,7 @@
 # Stuff to not include in git repo
 
+scripts/.aim/*
+MONAI_DATA/*
 output/*
 test_files/*
 *.ckpt
