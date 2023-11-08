@@ -46,6 +46,7 @@ from dataset import FistulaDataset
 class SegmentationNet(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
+        self.config = config
         self._model = UNet(
             spatial_dims=3,
             in_channels=1,
@@ -86,6 +87,289 @@ class SegmentationNet(pl.LightningModule):
         self.best_val_epoch = 0
         self.validation_step_outputs = []
         #self.prepare_data()
+
+    def forward(self, x):
+        return self._model(x)
+
+    def prepare_data(self):
+        """
+        The goal of this function is to create the train, val, and test datasets.
+        These are set as self.train_ds, self.val_ds, and self.test_ds, respectively.
+        Each of these should be a monai.data.Dataset object or some more advanced wrapper such as a monai.data.CacheDataset.
+        This means that all other variables need not be fields of the SegmentationNet LightningModule class.
+        """
+
+        # config is accessible as self.config
+        batch_size = self.config.datamodule['BATCH_SIZE']
+        #self.log(batch_size)
+        num_workers = self.config.datamodule['NUM_WORKERS']
+        pin_memory = self.config.datamodule['PIN_MEMORY']
+        shuffle = self.config.datamodule['SHUFFLE']
+
+        # TODO: check train dataset length and integrity
+        # TODO: check val dataset length and integrity
+
+        # * Create pd.dataframes of train, val, test splits of the data
+        train_data = pd.read_csv(os.path.join(self.config.etl['DATA_DIR'], self.config.dataset['DATA_NAME'], 'train' + '_' + self.config.dataset['DATA_NAME'] + '.csv'))
+        val_data = pd.read_csv(os.path.join(self.config.etl['DATA_DIR'], self.config.dataset['DATA_NAME'], 'val' + '_' + self.config.dataset['DATA_NAME'] + '.csv'))
+        test_data = pd.read_csv(os.path.join(self.config.etl['DATA_DIR'], self.config.dataset['DATA_NAME'], 'test' + '_' + self.config.dataset['DATA_NAME'] + '.csv'))
+
+        # * Create dictionaries of the data
+        train_files = [
+            {"image": image_name, "label": label_name} for image_name, label_name in zip(train_data['image'], train_data['label'])
+        ]
+        val_files = [
+            {"image": image_name, "label": label_name} for image_name, label_name in zip(val_data['image'], val_data['label'])
+        ]
+        test_files = [
+            {"image": image_name, "label": label_name} for image_name, label_name in zip(test_data['image'], test_data['label'])
+        ]
+        # The above are dictionaries of the form {"image": image_name, "label": label_name} for each image_name, label_name pair in the train, val, and test splits
+        # TODO: check that the data is being loaded correctly
+        # Each of the fields in the dictionary is a path to the image or label
+
+        # TODO: Check that determinism has been set. I think it is set with Lightning?
+
+
+        # * Train transforms
+        train_transforms = Compose(
+            [
+                LoadImaged(keys=["image", "label"]),
+                EnsureChannelFirstd(keys=["image", "label"]),
+                Orientationd(keys=["image", "label"], axcodes="RAS"),
+                Spacingd(
+                    keys=["image", "label"],
+                    pixdim=(1.5, 1.5, 2.0),
+                    mode=("bilinear", "nearest"),
+                ),
+                ScaleIntensityRanged(
+                    keys=["image"],
+                    a_min=-57,
+                    a_max=164,
+                    b_min=0.0,
+                    b_max=1.0,
+                    clip=True,
+                ),
+                CropForegroundd(keys=["image", "label"], source_key="image"),
+                # randomly crop out patch samples from
+                # big image based on pos / neg ratio
+                # the image centers of negative samples
+                # must be in valid image area
+                RandCropByPosNegLabeld(
+                    keys=["image", "label"],
+                    label_key="label",
+                    spatial_size=(96, 96, 96),
+                    pos=1,
+                    neg=1,
+                    num_samples=4,
+                    image_key="image",
+                    image_threshold=0,
+                ),
+                # user can also add other random transforms
+                #                 RandAffined(
+                #                     keys=['image', 'label'],
+                #                     mode=('bilinear', 'nearest'),
+                #                     prob=1.0,
+                #                     spatial_size=(96, 96, 96),
+                #                     rotate_range=(0, 0, np.pi/15),
+                #                     scale_range=(0.1, 0.1, 0.1)),
+            ]
+        )
+        val_transforms = Compose(
+            [
+                LoadImaged(keys=["image", "label"]),
+                EnsureChannelFirstd(keys=["image", "label"]),
+                Orientationd(keys=["image", "label"], axcodes="RAS"),
+                Spacingd(
+                    keys=["image", "label"],
+                    pixdim=(1.5, 1.5, 2.0),
+                    mode=("bilinear", "nearest"),
+                ),
+                ScaleIntensityRanged(
+                    keys=["image"],
+                    a_min=-57,
+                    a_max=164,
+                    b_min=0.0,
+                    b_max=1.0,
+                    clip=True,
+                ),
+                CropForegroundd(keys=["image", "label"], source_key="image"),
+            ]
+        )
+
+        # From the base PyTorch tutorial
+        # Spacingd, Orientationd, and CropForegroundd are all transforms that only take the `image` as input
+        test_transforms = Compose(
+            [
+                LoadImaged(keys=["image", "label"]),
+                EnsureChannelFirstd(keys=["image", "label"]),
+                # Here the Spacingd only takes the `image` as input
+                Spacingd(keys=["image"], pixdim=(1.5, 1.5, 2.0), mode="bilinear"),
+                # Here the Orientationd only takes the `image` as input
+                Orientationd(keys=["image"], axcodes="RAS"),
+                ScaleIntensityRanged(
+                    keys=["image"],
+                    a_min=-57,
+                    a_max=164,
+                    b_min=0.0,
+                    b_max=1.0,
+                    clip=True,
+                ),
+                # Here the CropForegroundd only takes the `image` as input
+                CropForegroundd(keys=["image"], source_key="image"),
+            ]
+        )
+
+        self.test_ds = Dataset(data=test_files, transform=test_transforms)
+        # test_dataloader = DataLoader(self.test_ds, batch_size=1, num_workers=4)
+
+        # From the base PyTorch tutorial
+        # This is for use in the test_step function
+        self.post_test_transforms = Compose(
+            [
+                Invertd(
+                    keys="pred",
+                    transform=val_org_transforms,
+                    orig_keys="image",
+                    meta_keys="pred_meta_dict",
+                    orig_meta_keys="image_meta_dict",
+                    meta_key_postfix="meta_dict",
+                    nearest_interp=False,
+                    to_tensor=True,
+                ),
+                AsDiscreted(keys="pred", argmax=True, to_onehot=2),
+                AsDiscreted(keys="label", to_onehot=2),
+            ]
+        )
+
+        # * Create the datasets
+        self.train_ds = CacheDataset(
+            data=train_files,
+            transform=train_transforms,
+            cache_rate=1.0,
+            num_workers=4,
+        )
+        self.val_ds = CacheDataset(
+            data=val_files,
+            transform=val_transforms,
+            cache_rate=1.0,
+            num_workers=4,
+        )
+        self.test_ds = CacheDataset(
+            data=test_files,
+            transform=test_transforms,
+            cache_rate=1.0,
+            num_workers=4,
+        )
+
+    def train_dataloader(self):
+        train_loader = DataLoader(
+            self.train_ds,
+            batch_size=self.config.datamodule['BATCH_SIZE'],
+            shuffle=self.config.datamodule['SHUFFLE'],
+            num_workers=self.config.datamodule['NUM_WORKERS'],
+            collate_fn=list_data_collate,
+        )
+        return train_loader
+
+    def val_dataloader(self):
+        val_loader = DataLoader(
+            self.val_ds,
+            batch_size=self.config.datamodule['BATCH_SIZE'],
+            shuffle=self.config.datamodule['SHUFFLE'],
+            num_workers=self.config.datamodule['NUM_WORKERS'],
+            collate_fn=list_data_collate,
+        )
+        return val_loader
+
+    def test_dataloader(self):
+        test_loader = DataLoader(
+            self.test_ds,
+            batch_size=1,
+            shuffle=False,
+            num_workers=4,
+            collate_fn=list_data_collate,
+        )
+        return test_loader
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self._model.parameters(), lr=1e-4)
+        return optimizer
+
+    # The below train step, val step, and val epoch end hook are all from the Lightning tutorial
+    # I need to modify them.
+    # At least to remove the Tensorboard logging since I am not using that.
+    def training_step(self, batch, batch_idx):
+        images, labels = batch["image"], batch["label"]
+        output = self.forward(images)
+        loss = self.loss_function(output, labels)
+        tensorboard_logs = {"train_loss": loss.item()}
+        return {"loss": loss, "log": tensorboard_logs}
+
+    def validation_step(self, batch, batch_idx):
+        images, labels = batch["image"], batch["label"]
+        roi_size = (160, 160, 160)
+        sw_batch_size = 4
+        outputs = sliding_window_inference(images, roi_size, sw_batch_size, self.forward)
+        loss = self.loss_function(outputs, labels)
+        outputs = [self.post_pred(i) for i in decollate_batch(outputs)]
+        labels = [self.post_label(i) for i in decollate_batch(labels)]
+        self.dice_metric(y_pred=outputs, y=labels)
+        d = {"val_loss": loss, "val_number": len(outputs)}
+        self.validation_step_outputs.append(d)
+        return d
+
+    def on_validation_epoch_end(self):
+        val_loss, num_items = 0, 0
+        for output in self.validation_step_outputs:
+            val_loss += output["val_loss"].sum().item()
+            num_items += output["val_number"]
+        mean_val_dice = self.dice_metric.aggregate().item()
+        self.dice_metric.reset()
+        mean_val_loss = torch.tensor(val_loss / num_items)
+        tensorboard_logs = {
+            "val_dice": mean_val_dice,
+            "val_loss": mean_val_loss,
+        }
+        if mean_val_dice > self.best_val_dice:
+            self.best_val_dice = mean_val_dice
+            self.best_val_epoch = self.current_epoch
+        print(
+            f"current epoch: {self.current_epoch} "
+            f"current mean dice: {mean_val_dice:.4f}"
+            f"\nbest mean dice: {self.best_val_dice:.4f} "
+            f"at epoch: {self.best_val_epoch}"
+        )
+        self.validation_step_outputs.clear()  # free memory
+        return {"log": tensorboard_logs}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         self.test_transforms = Compose([
             LoadImaged(keys=['image', 'label', 'resample_model']),
