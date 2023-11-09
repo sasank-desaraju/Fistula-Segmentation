@@ -1,6 +1,6 @@
 """
 Sasank Desaraju
-4/4/2023
+11/9/2023
 """
 
 from datetime import datetime
@@ -22,13 +22,15 @@ import wandb
 def main(config, wandb_logger):
 
     #data_module = SegmentationDataModule(config=config)
-    data_module = CacheDatamodule(config=config)
+    #data_module = CacheDatamodule(config=config)
+    # Trying to not use a datamodule ^
 
     model = SegmentationNet(config=config)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath='checkpoints/',
-        monitor='val/loss',
+        #monitor='val/loss',
+        monitor='val_loss',
         filename=wandb_logger.name + 'lowest_val_loss',
         save_top_k=1,
         mode='min'
@@ -59,7 +61,8 @@ def main(config, wandb_logger):
         max_steps=config.init['MAX_STEPS'],
         strategy=config.init['STRATEGY'])
 
-    trainer.fit(model, data_module)
+    #trainer.fit(model, data_module)
+    trainer.fit(model)
 
     # TODO: Are the trainer and Wandb doing the same thing/overwriting the checkpoint?
     #Save model using .ckpt file format. This includes .pth info and other (hparams) info.

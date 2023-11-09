@@ -299,6 +299,7 @@ class SegmentationNet(pl.LightningModule):
     # The below train step, val step, and val epoch end hook are all from the Lightning tutorial
     # I need to modify them.
     # At least to remove the Tensorboard logging since I am not using that.
+    # Maybe leave the Tensorboard logging and see if Wandb can just use it like that?
     def training_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
         output = self.forward(images)
