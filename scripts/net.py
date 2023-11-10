@@ -1,6 +1,7 @@
 from monai.utils import set_determinism
 from monai.transforms import (
     AsDiscrete,
+    AsDiscreted,
     EnsureChannelFirstd,
     Compose,
     CropForegroundd,
@@ -33,6 +34,7 @@ import torch
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import nibabel as nib
 import tempfile
 import shutil
@@ -91,7 +93,8 @@ class SegmentationNet(pl.LightningModule):
     def forward(self, x):
         return self._model(x)
 
-    def prepare_data(self):
+    #def prepare_data(self):
+    def setup(self, stage):
         """
         The goal of this function is to create the train, val, and test datasets.
         These are set as self.train_ds, self.val_ds, and self.test_ds, respectively.
@@ -220,7 +223,7 @@ class SegmentationNet(pl.LightningModule):
             ]
         )
 
-        self.test_ds = Dataset(data=test_files, transform=test_transforms)
+        # self.test_ds = Dataset(data=test_files, transform=test_transforms)
         # test_dataloader = DataLoader(self.test_ds, batch_size=1, num_workers=4)
 
         # From the base PyTorch tutorial
@@ -229,7 +232,7 @@ class SegmentationNet(pl.LightningModule):
             [
                 Invertd(
                     keys="pred",
-                    transform=val_org_transforms,
+                    transform=test_transforms,
                     orig_keys="image",
                     meta_keys="pred_meta_dict",
                     orig_meta_keys="image_meta_dict",
