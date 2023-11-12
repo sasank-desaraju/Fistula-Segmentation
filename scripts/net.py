@@ -113,19 +113,31 @@ class SegmentationNet(pl.LightningModule):
         # TODO: check val dataset length and integrity
 
         # * Create pd.dataframes of train, val, test splits of the data
+        # Reading the image and label paths relative to the DATA_DIR to a pd dataframe
         train_data = pd.read_csv(os.path.join(self.config.etl['DATA_DIR'], self.config.dataset['DATA_NAME'], 'train' + '_' + self.config.dataset['DATA_NAME'] + '.csv'))
         val_data = pd.read_csv(os.path.join(self.config.etl['DATA_DIR'], self.config.dataset['DATA_NAME'], 'val' + '_' + self.config.dataset['DATA_NAME'] + '.csv'))
         test_data = pd.read_csv(os.path.join(self.config.etl['DATA_DIR'], self.config.dataset['DATA_NAME'], 'test' + '_' + self.config.dataset['DATA_NAME'] + '.csv'))
 
         # * Create dictionaries of the data
+        IMAGE_ROOT = self.config.dataset['IMAGE_ROOT']
         train_files = [
-            {"image": image_name, "label": label_name} for image_name, label_name in zip(train_data['image'], train_data['label'])
+            {
+                # Prepend each image and label path by the IMAGE_ROOT since the dataframe is of paths relative to the DATA_DIR
+                "image": os.path.join(IMAGE_ROOT, image_name),
+                "label": os.path.join(IMAGE_ROOT, label_name)
+            } for image_name, label_name in zip(train_data['image'], train_data['label'])
         ]
         val_files = [
-            {"image": image_name, "label": label_name} for image_name, label_name in zip(val_data['image'], val_data['label'])
+            {
+                "image": os.path.join(IMAGE_ROOT, image_name),
+                "label": os.path.join(IMAGE_ROOT, label_name)
+            } for image_name, label_name in zip(val_data['image'], val_data['label'])
         ]
         test_files = [
-            {"image": image_name, "label": label_name} for image_name, label_name in zip(test_data['image'], test_data['label'])
+            {
+                "image": os.path.join(IMAGE_ROOT, image_name),
+                "label": os.path.join(IMAGE_ROOT, label_name)
+            } for image_name, label_name in zip(test_data['image'], test_data['label'])
         ]
         # The above are dictionaries of the form {"image": image_name, "label": label_name} for each image_name, label_name pair in the train, val, and test splits
         # TODO: check that the data is being loaded correctly
@@ -202,6 +214,9 @@ class SegmentationNet(pl.LightningModule):
 
         # From the base PyTorch tutorial
         # Spacingd, Orientationd, and CropForegroundd are all transforms that only take the `image` as input
+        # TODO: Use a transform to resample all the images to the same size.
+        # Maybe SpatialResample, ResampleToMatch, or Resize (the dictionary versions, of course)
+        # Need to do this for train, val, and test
         test_transforms = Compose(
             [
                 LoadImaged(keys=["image", "label"]),
@@ -279,7 +294,7 @@ class SegmentationNet(pl.LightningModule):
         val_loader = DataLoader(
             self.val_ds,
             batch_size=self.config.datamodule['BATCH_SIZE'],
-            shuffle=self.config.datamodule['SHUFFLE'],
+            shuffle=False,
             num_workers=self.config.datamodule['NUM_WORKERS'],
             collate_fn=list_data_collate,
         )
