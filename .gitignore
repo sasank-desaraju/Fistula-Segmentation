@@ -1,5 +1,7 @@
 # Stuff to not include in git repo
 
+# The below line is the long core.blahblahblah file that gets created sometimes
+core.*
 scripts/.aim/*
 MONAI_DATA/*
 output/*

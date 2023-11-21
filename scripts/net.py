@@ -8,6 +8,7 @@ from monai.transforms import (
     LoadImaged,
     Orientationd,
     RandCropByPosNegLabeld,
+    Resized,
     ScaleIntensityRanged,
     Spacingd,
     ResampleToMatchd,
@@ -146,17 +147,30 @@ class SegmentationNet(pl.LightningModule):
         # TODO: Check that determinism has been set. I think it is set with Lightning?
 
 
+        # TODO: Use a transform to resample all the images to the same size.
+        # Maybe SpatialResample, ResampleToMatch, or Resize (the dictionary versions, of course)
+        # Need to do this for train, val, and test
+
         # * Train transforms
         train_transforms = Compose(
             [
                 LoadImaged(keys=["image", "label"]),
                 EnsureChannelFirstd(keys=["image", "label"]),
                 Orientationd(keys=["image", "label"], axcodes="RAS"),
-                Spacingd(
+                Resized(
                     keys=["image", "label"],
-                    pixdim=(1.5, 1.5, 2.0),
-                    mode=("bilinear", "nearest"),
+                    spatial_size=(240, 110, 200),
+                    mode=("nearest", "nearest"),
                 ),
+
+                # '''
+                # Spacingd(
+                #     keys=["image", "label"],
+                #     pixdim=(1.5, 1.5, 2.0),
+                #     mode=("bilinear", "nearest"),
+                # ),
+                # '''
+
                 ScaleIntensityRanged(
                     keys=["image"],
                     a_min=-57,
@@ -195,11 +209,18 @@ class SegmentationNet(pl.LightningModule):
                 LoadImaged(keys=["image", "label"]),
                 EnsureChannelFirstd(keys=["image", "label"]),
                 Orientationd(keys=["image", "label"], axcodes="RAS"),
-                Spacingd(
+                Resized(
                     keys=["image", "label"],
-                    pixdim=(1.5, 1.5, 2.0),
-                    mode=("bilinear", "nearest"),
+                    spatial_size=(240, 110, 200),
+                    mode=("nearest", "nearest"),
                 ),
+                # """
+                # Spacingd(
+                #     keys=["image", "label"],
+                #     pixdim=(1.5, 1.5, 2.0),
+                #     mode=("bilinear", "nearest"),
+                # ),
+                # """
                 ScaleIntensityRanged(
                     keys=["image"],
                     a_min=-57,
@@ -224,7 +245,12 @@ class SegmentationNet(pl.LightningModule):
                 # Here the Spacingd only takes the `image` as input
                 Spacingd(keys=["image"], pixdim=(1.5, 1.5, 2.0), mode="bilinear"),
                 # Here the Orientationd only takes the `image` as input
-                Orientationd(keys=["image"], axcodes="RAS"),
+                Resized(
+                    keys=["image", "label"],
+                    spatial_size=(240, 110, 200),
+                    mode=("nearest", "nearest"),
+                ),
+                #       Orientationd(keys=["image"], axcodes="RAS"),
                 ScaleIntensityRanged(
                     keys=["image"],
                     a_min=-57,
@@ -571,6 +597,7 @@ class SegmentationNet(pl.LightningModule):
         images, labels = batch["image"], batch["label"]
 
         # Make the labels binary two-class
+        # TODO: This is wrong. The labels should be one-class and either 1 or 0
         labels = torch.where(labels > 0, torch.ones_like(labels), torch.zeros_like(labels))
         labels = torch.stack((labels, 1 - labels), dim=1)
         labels = torch.squeeze(labels, dim=2)

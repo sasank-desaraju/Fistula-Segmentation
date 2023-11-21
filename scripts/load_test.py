@@ -24,21 +24,21 @@ def main(config):
 
     model = SegmentationNet(config=config)
 
-    checkpoint_callback = ModelCheckpoint(
-        dirpath='checkpoints/',
-        #monitor='val/loss',
-        monitor='val_loss',
-        filename=wandb_logger.name + 'lowest_val_loss',
-        save_top_k=1,
-        mode='min'
-    )
-    earlystopping_callback = EarlyStopping(
-        monitor='val/loss',
-        min_delta=0.00,
-        patience=10,
-        verbose=False,
-        mode='min'
-    )
+    # checkpoint_callback = ModelCheckpoint(
+    #     dirpath='checkpoints/',
+    #     #monitor='val/loss',
+    #     monitor='val_loss',
+    #     filename=wandb_logger.name + 'lowest_val_loss',
+    #     save_top_k=1,
+    #     mode='min'
+    # )
+    # earlystopping_callback = EarlyStopping(
+    #     monitor='val/loss',
+    #     min_delta=0.00,
+    #     patience=10,
+    #     verbose=False,
+    #     mode='min'
+    # )
 
     # Our trainer object contains a lot of important info.
     trainer = pl.Trainer(
@@ -51,7 +51,7 @@ def main(config):
         #callbacks=[JTMLCallback(config, wandb_run)],    # pass in the callbacks we want
         #callbacks=[JTMLCallback(config, wandb_run), save_best_val_checkpoint_callback],
         #callbacks=[checkpoint_callback, earlystopping_callback],
-        callbacks=[checkpoint_callback],
+        # callbacks=[checkpoint_callback],
         log_every_n_steps=5,
         fast_dev_run=config.init['FAST_DEV_RUN'],
         max_epochs=config.init['MAX_EPOCHS'],
