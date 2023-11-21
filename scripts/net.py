@@ -345,6 +345,7 @@ class SegmentationNet(pl.LightningModule):
     # At least to remove the Tensorboard logging since I am not using that.
     # Maybe leave the Tensorboard logging and see if Wandb can just use it like that?
     def training_step(self, batch, batch_idx):
+        print("Started training step")
         images, labels = batch["image"], batch["label"]
         output = self.forward(images)
         loss = self.loss_function(output, labels)
@@ -352,6 +353,7 @@ class SegmentationNet(pl.LightningModule):
         return {"loss": loss, "log": tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
+        print("Started validation step")
         images, labels = batch["image"], batch["label"]
         roi_size = (160, 160, 160)
         sw_batch_size = 4
@@ -502,6 +504,7 @@ class SegmentationNet(pl.LightningModule):
         """
 
 
+        """
         # define the data transforms
         train_transforms = Compose(
             [
@@ -560,6 +563,7 @@ class SegmentationNet(pl.LightningModule):
                 CropForegroundd(keys=["image", "label"], source_key="image"),
             ]
         )
+        """
 
         # we use cached datasets - these are 10x faster than regular datasets
         """
@@ -593,17 +597,18 @@ class SegmentationNet(pl.LightningModule):
         optimizer = torch.optim.Adam(self._model.parameters(), 1e-4)
         return optimizer
 
-    def training_step(self, batch, batch_idx):
+    def old_training_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
 
         # Make the labels binary two-class
         # TODO: This is wrong. The labels should be one-class and either 1 or 0
         labels = torch.where(labels > 0, torch.ones_like(labels), torch.zeros_like(labels))
-        labels = torch.stack((labels, 1 - labels), dim=1)
-        labels = torch.squeeze(labels, dim=2)
+        # labels = torch.stack((labels, 1 - labels), dim=1)
+        # labels = torch.squeeze(labels, dim=2)
 
         print(f'Train images shape: {images.shape} and labels shape: {labels.shape}')
         preds = self(images)
+        print(f'Train images shape: {images.shape} and labels shape: {labels.shape}')
         #print(f'Train preds shape: {preds.shape} and labels shape: {labels.shape}')
         loss = self.loss_function(preds, labels)
         dice_score = self.dice_metric(y_pred=preds, y=labels).mean()            # Average across batch
@@ -623,7 +628,7 @@ class SegmentationNet(pl.LightningModule):
 
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def old_validation_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
 
         # Make the labels binary two-class
@@ -657,7 +662,7 @@ class SegmentationNet(pl.LightningModule):
         
         return loss
 
-    def test_step(self, batch, batch_idx):
+    def old_test_step(self, batch, batch_idx):
         images, labels = batch["image"], batch["label"]
         
         # Make the labels binary two-class
