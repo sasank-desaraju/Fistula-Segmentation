@@ -2,14 +2,9 @@
 
 # This is to create the environment using the mamba solver.
 
-conda create -n fistula python=3.10
-conda activate fistula
-conda install -y -c conda-forge mamba
-
-# Add channels so we don't need to add them in the package install calls
-conda config --env --add channels conda-forge
-conda config --env --add channels nvidia
-conda config --env --add channels pytorch
+#conda create -n fistula python=3.10
+#conda activate fistula
+#conda install -y -c conda-forge mamba
 
 # Now install the actual packages
 mamba install -y pandas scikit-learn scikit-image matplotlib seaborn
@@ -24,8 +19,3 @@ mamba install -y -c conda-forge pytorch-lightning
 mamba install -y -c conda-forge monai
 
 # bruhhh "Torch is not compiled with CUDA enabled"
-
-
-
-# What I'm doing now
-mamba install -y -c nvidia cuda-python
