@@ -349,8 +349,9 @@ class SegmentationNet(pl.LightningModule):
         images, labels = batch["image"], batch["label"]
         output = self.forward(images)
         loss = self.loss_function(output, labels)
-        tensorboard_logs = {"train_loss": loss.item()}
-        return {"loss": loss, "log": tensorboard_logs}
+        #tensorboard_logs = {"train_loss": loss.item()}
+        #return {"loss": loss, "log": tensorboard_logs}
+        return {"loss": loss}
 
     def validation_step(self, batch, batch_idx):
         print("Started validation step")
@@ -359,6 +360,7 @@ class SegmentationNet(pl.LightningModule):
         sw_batch_size = 4
         outputs = sliding_window_inference(images, roi_size, sw_batch_size, self.forward)
         loss = self.loss_function(outputs, labels)
+        self.log('val_loss', loss)
         outputs = [self.post_pred(i) for i in decollate_batch(outputs)]
         labels = [self.post_label(i) for i in decollate_batch(labels)]
         self.dice_metric(y_pred=outputs, y=labels)
@@ -462,7 +464,7 @@ class SegmentationNet(pl.LightningModule):
             ),
         ])
 
-    def forward(self, x):
+    def old_forward(self, x):
         """
         with profile(activities=[ProfilerActivity.CPU],
                 profile_memory=True, record_shapes=True) as prof:
@@ -474,7 +476,7 @@ class SegmentationNet(pl.LightningModule):
             #print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
         return output
 
-    def prepare_data(self):
+    def old_prepare_data(self):
 
         """
         # set deterministic training for reproducibility
@@ -593,7 +595,7 @@ class SegmentationNet(pl.LightningModule):
         #self.test_dataset = FistulaDataset(data=test_files, transform=None)
 
 
-    def configure_optimizers(self):
+    def old_configure_optimizers(self):
         optimizer = torch.optim.Adam(self._model.parameters(), 1e-4)
         return optimizer
 

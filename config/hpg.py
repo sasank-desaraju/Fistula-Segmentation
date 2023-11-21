@@ -15,8 +15,8 @@ class Configuration:
             'MODEL_NAME': 'Research',
             'RUN_NAME': time.strftime('%Y-%m-%d-%H-%M-%S'),
             'WANDB_RUN_GROUP': 'HiPerGator',
-            'FAST_DEV_RUN': True,  # Runs inputted batches (True->1) and disables logging and some callbacks
-            'MAX_EPOCHS': 300,
+            'FAST_DEV_RUN': False,  # Runs inputted batches (True->1) and disables logging and some callbacks
+            'MAX_EPOCHS': 200,
             'MAX_STEPS': -1,    # -1 means it will do all steps and be limited by epochs
             'STRATEGY': 'auto'    # This is the training strategy. Should be 'ddp' for multi-GPU (like HPG)
         }
@@ -36,7 +36,7 @@ class Configuration:
         }
 
         self.datamodule = {
-            'CKPT_FILE': 'checkpoints/100Epoch87IOU.ckpt',
+            'CKPT_FILE': 'checkpoints/asdf_100Epoch87IOU.ckpt',
             'BATCH_SIZE': 5,
             'FIT_CACHE_NUM': 20,
             'SHUFFLE': True,        # Only for training; for test and val this is set in the datamodule script to False
