@@ -30,7 +30,8 @@ class Configuration:
         self.dataset = {
             'DATA_NAME': 'BaseSplit',
             'USE_TRANSFORMS': False,
-            'IMAGE_ROOT': '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/',
+            #'IMAGE_ROOT': '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/',
+            'IMAGE_ROOT': '/mnt/Linux-Storage/Dropbox (UFL)/FistulaData/Segmentations/',
             'IMAGE_SIZE': (512, 512, 96)
         }
 

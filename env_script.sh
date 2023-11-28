@@ -24,6 +24,8 @@ mamba install -y -c conda-forge pytorch-lightning
 mamba install -y -c conda-forge monai
 
 # bruhhh "Torch is not compiled with CUDA enabled"
+# Lol Ubuntu did not even recognize the GPU
+# I rebooted and it is working
 
 
 
