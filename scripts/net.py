@@ -459,7 +459,7 @@ class SegmentationNet(pl.LightningModule):
 
 
 
-
+    def foobar(self):
 
         self.test_transforms = Compose([
             LoadImaged(keys=['image', 'label', 'resample_model']),
@@ -504,6 +504,8 @@ class SegmentationNet(pl.LightningModule):
                 output_ext='.nii.gz',
             ),
         ])
+
+        return -1
 
     def old_forward(self, x):
         """
