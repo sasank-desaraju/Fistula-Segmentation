@@ -89,6 +89,7 @@ class SegmentationNet(pl.LightningModule):
         self.best_val_dice = 0
         self.best_val_epoch = 0
         self.validation_step_outputs = []
+        self.test_step_outputs = []
         #self.prepare_data()
 
     def forward(self, x):
@@ -392,7 +393,47 @@ class SegmentationNet(pl.LightningModule):
         self.validation_step_outputs.clear()  # free memory
         return {"log": tensorboard_logs}
 
+    def test_step(self, batch, batch_idx):
+        print("Started test step")
+        images, labels = batch["image"], batch["label"]
+        roi_size = (160, 160, 160)
+        sw_batch_size = 4
+        outputs = sliding_window_inference(images, roi_size, sw_batch_size, self.forward)
+        loss = self.loss_function(outputs, labels)
+        #self.log('val_loss', loss)
+        self.log('test_loss', loss)
+        outputs = [self.post_pred(i) for i in decollate_batch(outputs)]
+        labels = [self.post_label(i) for i in decollate_batch(labels)]
+        self.dice_metric(y_pred=outputs, y=labels)
+        d = {"test_loss": loss, "test_number": len(outputs)}
+        self.test_step_outputs.append(d)
+        return d
 
+    def on_test_epoch_end(self):
+        test_loss, num_items = 0, 0
+        for output in self.test_step_outputs:
+            test_loss += output["test_loss"].sum().item()
+            num_items += output["test_number"]
+        mean_test_dice = self.dice_metric.aggregate().item()
+        self.dice_metric.reset()
+        mean_test_loss = torch.tensor(test_loss / num_items)
+        tensorboard_logs = {
+            "test_dice": mean_test_dice,
+            "test_loss": mean_test_loss,
+        }
+        self.log("mean_test_dice", mean_test_dice)
+        self.log("mean_test_loss", mean_test_loss)
+        # if mean_val_dice > self.best_val_dice:
+        #     self.best_val_dice = mean_val_dice
+        #     self.best_val_epoch = self.current_epoch
+        print(
+            # f"current epoch: {self.current_epoch} "
+            f"mean test dice: {mean_test_dice:.4f}"
+            # f"\nbest mean dice: {self.best_val_dice:.4f} "
+            # f"at epoch: {self.best_val_epoch}"
+        )
+        self.test_step_outputs.clear()  # free memory
+        return {"log": tensorboard_logs}
 
 
 

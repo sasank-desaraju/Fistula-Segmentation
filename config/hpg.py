@@ -36,7 +36,7 @@ class Configuration:
         }
 
         self.datamodule = {
-            'CKPT_FILE': 'checkpoints/asdf_100Epoch87IOU.ckpt',
+            'CKPT_FILE': 'checkpoints/FistulaSeg_11_21_v1.ckpt',
             'BATCH_SIZE': 5,
             'FIT_CACHE_NUM': 20,
             'SHUFFLE': True,        # Only for training; for test and val this is set in the datamodule script to False
