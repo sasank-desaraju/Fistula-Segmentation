@@ -337,21 +337,11 @@ class SegmentationNet(pl.LightningModule):
     def test_dataloader(self):
         test_loader = DataLoader(
             self.test_ds,
-            batch_size=2,
+            batch_size=1,
             shuffle=False,
             num_workers=4,
             collate_fn=list_data_collate,
         )
-        # If batch_size=1, it's automatically squeezing the batch dimension.
-        # To fix that, I will unsqueeze the batch dimension if batch_size=1.
-        if test_loader.batch_size == 1:
-            print("Unsqueezing batch dimension")
-            for batch in test_loader.dataset:
-                batch["image"] = torch.unsqueeze(batch["image"],0)
-                batch["label"] = torch.unsqueeze(batch["label"],0)
-                batch["foreground_start_coord"] = np.expand_dims(batch["foreground_start_coord"],0)
-                batch["foreground_end_coord"] = np.expand_dims(batch["foreground_end_coord"],0)
-            #torch.unsqueeze(test_loader.dataset,0)
         return test_loader
 
     def configure_optimizers(self):
