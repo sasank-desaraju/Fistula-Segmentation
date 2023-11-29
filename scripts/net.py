@@ -181,20 +181,27 @@ class SegmentationNet(pl.LightningModule):
                     clip=True,
                 ),
                 CropForegroundd(keys=["image", "label"], source_key="image"),
+
+
                 # randomly crop out patch samples from
                 # big image based on pos / neg ratio
                 # the image centers of negative samples
                 # must be in valid image area
-                RandCropByPosNegLabeld(
-                    keys=["image", "label"],
-                    label_key="label",
-                    spatial_size=(96, 96, 96),
-                    pos=1,
-                    neg=1,
-                    num_samples=4,
-                    image_key="image",
-                    image_threshold=0,
-                ),
+                # RandCropByPosNegLabeld(
+                #     keys=["image", "label"],
+                #     label_key="label",
+                #     spatial_size=(96, 96, 96),
+                #     pos=1,
+                #     neg=1,
+                #     num_samples=4,
+                #     image_key="image",
+                #     image_threshold=0,
+                # ),
+                        # Apparently randCropByPosNegLabeld changes the dataset to a list of dictionaries
+                        # Bruh.
+
+
+
                 # user can also add other random transforms
                 #                 RandAffined(
                 #                     keys=['image', 'label'],
@@ -330,11 +337,21 @@ class SegmentationNet(pl.LightningModule):
     def test_dataloader(self):
         test_loader = DataLoader(
             self.test_ds,
-            batch_size=1,
+            batch_size=2,
             shuffle=False,
             num_workers=4,
             collate_fn=list_data_collate,
         )
+        # If batch_size=1, it's automatically squeezing the batch dimension.
+        # To fix that, I will unsqueeze the batch dimension if batch_size=1.
+        if test_loader.batch_size == 1:
+            print("Unsqueezing batch dimension")
+            for batch in test_loader.dataset:
+                batch["image"] = torch.unsqueeze(batch["image"],0)
+                batch["label"] = torch.unsqueeze(batch["label"],0)
+                batch["foreground_start_coord"] = np.expand_dims(batch["foreground_start_coord"],0)
+                batch["foreground_end_coord"] = np.expand_dims(batch["foreground_end_coord"],0)
+            #torch.unsqueeze(test_loader.dataset,0)
         return test_loader
 
     def configure_optimizers(self):
