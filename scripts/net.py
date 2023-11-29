@@ -91,9 +91,9 @@ class SegmentationNet(pl.LightningModule):
         #self.prepare_data()
 
     def forward(self, x):
-        print("x is of size " + str(x.shape))
+        # print("x is of size " + str(x.shape))
         output = self._model(x)
-        print("output is of size " + str(output.shape))
+        # print("output is of size " + str(output.shape))
         return output
 
     #def prepare_data(self):
@@ -325,6 +325,7 @@ class SegmentationNet(pl.LightningModule):
             num_workers=self.config.datamodule['NUM_WORKERS'],
             collate_fn=list_data_collate,
         )
+        print("train_dataloader has length " + str(len(train_loader)) + " and batch size " + str(train_loader.batch_size) + ".")
         return train_loader
 
     def val_dataloader(self):
@@ -335,6 +336,7 @@ class SegmentationNet(pl.LightningModule):
             num_workers=self.config.datamodule['NUM_WORKERS'],
             collate_fn=list_data_collate,
         )
+        print("val_dataloader has length " + str(len(val_loader)) + " and batch size " + str(val_loader.batch_size) + ".")
         return val_loader
 
     def test_dataloader(self):
@@ -345,6 +347,7 @@ class SegmentationNet(pl.LightningModule):
             num_workers=4,
             collate_fn=list_data_collate,
         )
+        print("test_dataloader has length " + str(len(test_loader)) + " and batch size " + str(test_loader.batch_size) + ".")
         return test_loader
 
     def configure_optimizers(self):
