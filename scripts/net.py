@@ -53,22 +53,20 @@ class SegmentationNet(pl.LightningModule):
         self._model = UNet(
             spatial_dims=3,
             in_channels=1,
-            out_channels=2,
+            out_channels=1,
             channels=(16, 32, 64, 128, 256),
             strides=(2, 2, 2, 2),
             num_res_units=2,
             norm=Norm.BATCH
         )
-        """
-        self._model = SwinUNETR(
-            img_size=config.dataset['IMAGE_SIZE'],
-            spatial_dims=3,
-            in_channels=1,
-            out_channels=2,
-            depths=(2, 2, 2, 2),
-            num_heads=(3, 5, 12, 24)
-        )
-        """
+        # self._model = SwinUNETR(
+        #     img_size=config.dataset['IMAGE_SIZE'],
+        #     spatial_dims=3,
+        #     in_channels=1,
+        #     out_channels=1,
+        #     depths=(2, 2, 2, 2),
+        #     num_heads=(3, 5, 12, 24)
+        # )
         # * Send the model to GPU
         self._model.cuda()
         # * Assert that the model is on GPU
@@ -93,7 +91,10 @@ class SegmentationNet(pl.LightningModule):
         #self.prepare_data()
 
     def forward(self, x):
-        return self._model(x)
+        print("x is of size " + str(x.shape))
+        output = self._model(x)
+        print("output is of size " + str(output.shape))
+        return output
 
     #def prepare_data(self):
     def setup(self, stage):
@@ -160,7 +161,7 @@ class SegmentationNet(pl.LightningModule):
                 Orientationd(keys=["image", "label"], axcodes="RAS"),
                 Resized(
                     keys=["image", "label"],
-                    spatial_size=(240, 110, 200),
+                    spatial_size=self.config.dataset["IMAGE_SIZE"],
                     mode=("nearest", "nearest"),
                 ),
 
@@ -219,7 +220,8 @@ class SegmentationNet(pl.LightningModule):
                 Orientationd(keys=["image", "label"], axcodes="RAS"),
                 Resized(
                     keys=["image", "label"],
-                    spatial_size=(240, 110, 200),
+                    #spatial_size=(240, 110, 200),
+                    spatial_size=self.config.dataset["IMAGE_SIZE"],
                     mode=("nearest", "nearest"),
                 ),
                 # """
@@ -255,7 +257,8 @@ class SegmentationNet(pl.LightningModule):
                 # Here the Orientationd only takes the `image` as input
                 Resized(
                     keys=["image", "label"],
-                    spatial_size=(240, 110, 200),
+                    #spatial_size=(240, 110, 200),
+                    spatial_size=self.config.dataset["IMAGE_SIZE"],
                     mode=("nearest", "nearest"),
                 ),
                 #       Orientationd(keys=["image"], axcodes="RAS"),

@@ -32,13 +32,14 @@ class Configuration:
             'USE_TRANSFORMS': False,
             'IMAGE_ROOT': '/home/sasank/Dropbox (UFL)/FistulaData/Segmentations/',
             #'IMAGE_ROOT': '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/Segmentations/',
-            'IMAGE_SIZE': (512, 512, 96)
+            #'IMAGE_SIZE': (512, 512, 96)
+            'IMAGE_SIZE': (256, 128, 256)
         }
 
         self.datamodule = {
             #'CKPT_FILE': '/media/sasank/LinuxStorage/Dropbox (UFL)/FistulaData/checkpoints/100Epoch87IOU.ckpt',
             'CKPT_FILE': '/home/sasank/Dropbox (UFL)/FistulaData/checkpoints/100Epoch87IOU.ckpt',
-            'BATCH_SIZE': 3,
+            'BATCH_SIZE': 1,
             'FIT_CACHE_NUM': 2,
             'SHUFFLE': True,        # Only for training; for test and val this is set in the datamodule script to False
             'NUM_WORKERS': 2,
